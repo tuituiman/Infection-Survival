@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ชุมชนสู้โรค: Survival Outbreak - เกมเอาชีวิตรอดและเรียนรู้โรคติดต่อ</title>
+  <meta name="description" content="เกม 2D Survival จำลองการเอาชีวิตรอดในชุมชน 7 วัน บริหารความหิว ความกระหาย และป้องกันโรคติดต่อสำคัญ เช่น ไข้เลือดออก ไข้หูดับ ฉี่หนู และท้องร่วง">
+  <!-- Google Fonts: Prompt & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="game-container">
+    <!-- Main Game Canvas -->
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Visual Screen Debuff Overlays -->
+    <div id="vignette-fever" class="screen-fx"></div>
+    <div id="vignette-diarrhea" class="screen-fx"></div>
+    <div id="vignette-danger" class="screen-fx"></div>
+    <div id="tinnitus-flash" class="screen-fx"></div>
+
+    <!-- Top HUD: Day/Time, Weather, Survival Stats, Diseases, Actions -->
+    <header id="top-hud">
+      <div class="hud-card time-card">
+        <div class="day-badge" id="hud-day">วันที่ 1 / 7</div>
+        <div class="clock-display" id="hud-time">07:00 น.</div>
+        <div class="weather-badge" id="hud-weather">☀️ แดดจัด</div>
+      </div>
+
+      <!-- Horizontal Stats HUD: Player Survival Needs & Equipment -->
+      <div id="stats-hud" class="hud-card">
+        <div class="stat-row">
+          <div class="stat-label">
+            <span class="stat-icon">❤️</span>
+            <span class="stat-name">HP</span>
+            <span class="stat-val" id="val-hp">100/100</span>
+          </div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar hp-bar" id="bar-hp" style="width: 100%;"></div>
+          </div>
+        </div>
+
+        <div class="stat-row">
+          <div class="stat-label">
+            <span class="stat-icon">🍗</span>
+            <span class="stat-name">หิว</span>
+            <span class="stat-val" id="val-hunger">100%</span>
+          </div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar hunger-bar" id="bar-hunger" style="width: 100%;"></div>
+          </div>
+        </div>
+
+        <div class="stat-row">
+          <div class="stat-label">
+            <span class="stat-icon">💧</span>
+            <span class="stat-name">น้ำ</span>
+            <span class="stat-val" id="val-thirst">100%</span>
+          </div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar thirst-bar" id="bar-thirst" style="width: 100%;"></div>
+          </div>
+        </div>
+
+        <div class="stat-row">
+          <div class="stat-label">
+            <span class="stat-icon">⚡</span>
+            <span class="stat-name">พลัง</span>
+            <span class="stat-val" id="val-energy">100%</span>
+          </div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar energy-bar" id="bar-energy" style="width: 100%;"></div>
+          </div>
+        </div>
+
+        <!-- Equipment & Buffs -->
+        <div id="equipment-badges">
+          <div class="equip-badge" id="badge-boots" title="รองเท้าบูทยาง (ป้องกันฉี่หนู)">
+            👢 <span>ไม่มีบูท</span>
+          </div>
+          <div class="equip-badge" id="badge-repellent" title="ยากันยุง (ป้องกันไข้เลือดออก)">
+            🧴 <span>ไม่มียากันยุง</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right HUD Group: Active Diseases & Action Buttons -->
+      <div class="top-hud-right">
+        <!-- Disease Status Indicators (Active Infections) -->
+        <div id="active-diseases-container"></div>
+
+        <div class="hud-card hud-actions">
+          <button id="btn-codex" class="hud-btn" title="สารานุกรมโรคติดต่อ">
+            📖 <span class="btn-text">สารานุกรมโรค</span>
+          </button>
+          <button id="btn-sound" class="hud-btn icon-only" title="เปิด/ปิดเสียง">
+            🔊
+          </button>
+          <button id="btn-help" class="hud-btn icon-only" title="วิธีเล่น">
+            ❓
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- In-World Context Interaction Prompt -->
+    <div id="interaction-prompt" class="hidden">
+      <span class="key-badge">E</span>
+      <span id="prompt-text">สำรวจ</span>
+    </div>
+
+    <!-- Floating Event Notification Toasts -->
+    <div id="toast-container"></div>
+
+    <!-- Bottom HUD: Hotbar / Inventory Quick Access -->
+    <footer id="bottom-hud">
+      <div class="inventory-title">
+        <span>🎒 กระเป๋าเป้ (กด 1-8 หรือคลิกเพื่อใช้)</span>
+        <span id="inventory-count">0/8</span>
+      </div>
+      <div id="hotbar-slots" class="hotbar-grid">
+        <!-- 8 inventory slots generated by JS -->
+      </div>
+    </footer>
+
+    <!-- On-Screen Virtual Controls for Mobile / Touch -->
+    <div id="touch-controls" class="touch-only">
+      <div id="joystick-zone">
+        <div id="joystick-base">
+          <div id="joystick-knob"></div>
+        </div>
+      </div>
+      <div id="touch-action-buttons">
+        <button id="touch-btn-interact" class="touch-action-btn">
+          <span>🖐️</span>
+          <label>ทำรายการ</label>
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal: Interactive Object Action -->
+    <div id="modal-interaction" class="modal-overlay hidden">
+      <div class="modal-dialog glass-panel">
+        <div class="modal-header">
+          <h2 id="modal-interact-title">ชื่อวัตถุ</h2>
+          <button class="btn-close-modal" id="btn-close-interact">&times;</button>
+        </div>
+        <div class="modal-body" id="modal-interact-body">
+          <!-- Dynamic Action Options -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Disease Codex (สารานุกรมโรคติดต่อ) -->
+    <div id="modal-codex" class="modal-overlay hidden">
+      <div class="modal-dialog modal-large glass-panel">
+        <div class="modal-header">
+          <h2>📖 สารานุกรม 4 โรคติดต่อและการป้องกัน</h2>
+          <button class="btn-close-modal" id="btn-close-codex">&times;</button>
+        </div>
+        <div class="modal-body codex-layout">
+          <div class="codex-nav" id="codex-tabs">
+            <!-- Tabs generated by JS -->
+          </div>
+          <div class="codex-content" id="codex-detail">
+            <!-- Details rendered by JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: How to Play (คู่มือวิธีเล่น) -->
+    <div id="modal-help" class="modal-overlay hidden">
+      <div class="modal-dialog glass-panel">
+        <div class="modal-header">
+          <h2>🎮 วิธีเล่น & เป้าหมายของเกม</h2>
+          <button class="btn-close-modal" id="btn-close-help">&times;</button>
+        </div>
+        <div class="modal-body help-content">
+          <div class="help-section">
+            <h3>🎯 เป้าหมายหลัก</h3>
+            <p>เอาชีวิตรอดในชุมชนให้ครบ <strong>7 วัน</strong> พร้อมดูแลสุขภาพ ป้องกันและรักษาตนเองจากโรคระบาด 4 ชนิด</p>
+          </div>
+          <div class="help-section">
+            <h3>🕹️ การควบคุม</h3>
+            <p>• <strong>เคลื่อนที่:</strong> ปุ่ม <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> หรือปุ่มลูกศร (หรือจอยสติ๊กบนมือถือ)</p>
+            <p>• <strong>สำรวจ / โต้ตอบ:</strong> ปุ่ม <kbd>E</kbd> หรือปุ่มทำรายการบนหน้าจอ</p>
+            <p>• <strong>ใช้ไอเทมในกระเป๋า:</strong> ปุ่มตัวเลข <kbd>1</kbd> - <kbd>8</kbd> หรือคลิกที่ช่องไอเทม</p>
+          </div>
+          <div class="help-section">
+            <h3>⚠️ 4 กฎเหล็กเอาชีวิตรอด</h3>
+            <ul class="rule-list">
+              <li><strong>หมูกระทะ/เนื้อหมู:</strong> ห้ามกินดิบเด็ดขาด! ต้องนำไปย่างที่เตาให้สุก 100% ป้องกัน <em>ไข้หูดับ</em></li>
+              <li><strong>น้ำดื่ม:</strong> น้ำจากก๊อก/บ่อน้ำต้องนำไปต้มที่เตาก่อนดื่ม ป้องกัน <em>อุจจาระร่วงเฉียบพลัน</em></li>
+              <li><strong>น้ำท่วมขัง:</strong> อย่าเดินลุยน้ำด้วยเท้าเปล่า ต้องสวมรองเท้าบูทก่อนเสมอ ป้องกัน <em>โรคฉี่หนู</em></li>
+              <li><strong>รอบบ้านและเวลาพลบค่ำ:</strong> คว่ำกะลาน้ำขัง ใส่ทรายอะเบทในโอ่ง ทายากันยุง และกางมุ้งเวลานอน ป้องกัน <em>ไข้เลือดออก</em></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="screen-game-over" class="modal-overlay hidden">
+      <div class="modal-dialog glass-panel end-panel danger">
+        <div class="end-icon">💀</div>
+        <h1 class="end-title">คุณเสียชีวิต</h1>
+        <p id="game-over-cause" class="end-cause">สาเหตุ: สุขภาพทรุดโทรมจากการติดเชื้อ</p>
+        <div id="game-over-lesson" class="lesson-box">
+          <!-- Lesson on what went wrong and medical advice -->
+        </div>
+        <div class="end-stats" id="game-over-stats"></div>
+        <button id="btn-restart-game" class="btn-primary-action">เริ่มใหม่อีกครั้ง</button>
+      </div>
+    </div>
+
+    <!-- Victory Screen -->
+    <div id="screen-victory" class="modal-overlay hidden">
+      <div class="modal-dialog glass-panel end-panel success">
+        <div class="end-icon">🏆</div>
+        <h1 class="end-title">คุณรอดชีวิตครบ 7 วัน!</h1>
+        <p class="end-cause">ยินดีด้วย! คุณมีสุขอนามัยที่ดีเยี่ยมและป้องกันตนเองจากโรคระบาดได้อย่างปลอดภัย</p>
+        <div class="end-stats" id="victory-stats"></div>
+        <button id="btn-play-again" class="btn-primary-action">เล่นอีกรอบเพื่อทำสถิติ</button>
+      </div>
+    </div>
+
+    <!-- Welcome / Start Overlay -->
+    <div id="screen-welcome" class="modal-overlay">
+      <div class="modal-dialog glass-panel welcome-panel">
+        <div class="welcome-badge">EDUTAINMENT SURVIVAL</div>
+        <h1 class="welcome-title">ชุมชนสู้โรค<br><span>Survival Outbreak</span></h1>
+        <p class="welcome-desc">
+          คุณคือชาวบ้านคนหนึ่งในชุมชนที่กำลังเผชิญกับการระบาดของโรคตามฤดูกาล คุณต้องหาน้ำ อาหาร และพักผ่อนเพื่อดำรงชีวิต แต่ระวัง! การตัดสินใจที่ไม่ระมัดระวังอาจทำให้คุณติดเชื้อ <strong>ไข้เลือดออก, ไข้หูดับ, โรคฉี่หนู หรืออุจจาระร่วง</strong>
+        </p>
+        <div class="key-features-grid">
+          <div class="feature-item">
+            <span class="f-icon">🦟</span>
+            <h4>ไข้เลือดออก</h4>
+            <small>คว่ำกะลา ทายากันยุง กางมุ้ง</small>
+          </div>
+          <div class="feature-item">
+            <span class="f-icon">🥩</span>
+            <h4>ไข้หูดับ</h4>
+            <small>ปรุงหมูให้สุก 100%</small>
+          </div>
+          <div class="feature-item">
+            <span class="f-icon">👢</span>
+            <h4>โรคฉี่หนู</h4>
+            <small>สวมบูทก่อนลุยน้ำขัง</small>
+          </div>
+          <div class="feature-item">
+            <span class="f-icon">🍲</span>
+            <h4>ท้องร่วง</h4>
+            <small>ต้มน้ำสุก กินร้อน ล้างมือ</small>
+          </div>
+        </div>
+        <button id="btn-start-game" class="btn-primary-action pulse-anim">
+          🚀 เริ่มต้นการเอาชีวิตรอด
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Scripts (Modular Architecture) -->
+  <script src="js/audio.js"></script>
+  <script src="js/data/diseases.js"></script>
+  <script src="js/data/items.js"></script>
+  <script src="js/engine/input.js"></script>
+  <script src="js/engine/world.js"></script>
+  <script src="js/entities/player.js"></script>
+  <script src="js/systems/survival.js"></script>
+  <script src="js/systems/disease.js"></script>
+  <script src="js/systems/weather.js"></script>
+  <script src="js/engine/renderer.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
