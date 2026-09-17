@@ -2,6 +2,8 @@
 
 เว็บเกมแนว 2D Top-down Survival เอาชีวิตรอดในชุมชน พร้อมจำลองความเสี่ยงและการป้องกันโรคติดต่อสำคัญ 4 โรค (ไข้เลือดออก, ไข้หูดับ, โรคฉี่หนู, อุจจาระร่วงเฉียบพลัน) พัฒนาด้วยเทคโนโลยี Web มาตรฐาน (HTML5 Canvas, CSS Glassmorphism, Vanilla JavaScript และ Web Audio API)
 
+🎮 **เล่นเกมออนไลน์ได้ทันทีที่:** [https://tuituiman.github.io/Infection-Survival/](https://tuituiman.github.io/Infection-Survival/)
+
 ![Infection Survival](https://raw.githubusercontent.com/tuituiman/Infection-Survival/main/screenshot.png)
 
 ---
