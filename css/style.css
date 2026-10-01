@@ -926,6 +926,7 @@ html, body {
 .welcome-title span {
   background: linear-gradient(135deg, #38bdf8, #818cf8);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -989,7 +990,8 @@ html, body {
   display: none;
 }
 
-@media (pointer: coarse), (max-width: 900px) {
+/* ── Shared tablet + touch device rules (≤ 1024px or coarse pointer) ── */
+@media (pointer: coarse), (max-width: 1024px) {
   .touch-only {
     display: block;
   }
@@ -997,6 +999,9 @@ html, body {
   #top-hud {
     flex-wrap: wrap;
     gap: 8px;
+    top: 10px;
+    left: 10px;
+    right: 10px;
   }
 
   #stats-hud {
@@ -1004,24 +1009,30 @@ html, body {
     width: 100%;
     justify-content: space-between;
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
     padding: 6px 10px;
-    gap: 8px;
+    gap: 10px;
+    scrollbar-width: none;
   }
 
+  #stats-hud::-webkit-scrollbar { display: none; }
+
   .stat-row {
-    min-width: 68px;
+    min-width: 72px;
+    flex-shrink: 0;
   }
 
   .hud-btn .btn-text {
     display: none;
   }
 
+  /* Joystick */
   #joystick-zone {
     position: absolute;
-    bottom: 30px;
-    left: 30px;
-    width: 120px;
-    height: 120px;
+    bottom: 36px;
+    left: 28px;
+    width: 130px;
+    height: 130px;
     z-index: 25;
     touch-action: none;
   }
@@ -1030,34 +1041,36 @@ html, body {
     width: 100%;
     height: 100%;
     background: rgba(255, 255, 255, 0.1);
-    border: 2px solid rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.25);
     border-radius: 50%;
     position: relative;
     backdrop-filter: blur(4px);
   }
 
   #joystick-knob {
-    width: 50px;
-    height: 50px;
-    background: rgba(56, 189, 248, 0.6);
+    width: 52px;
+    height: 52px;
+    background: rgba(56, 189, 248, 0.65);
     border: 2px solid #fff;
     border-radius: 50%;
     position: absolute;
-    top: 35px;
-    left: 35px;
+    top: 39px;
+    left: 39px;
     pointer-events: none;
+    transition: transform 0.05s linear;
   }
 
+  /* Action button */
   #touch-action-buttons {
     position: absolute;
-    bottom: 30px;
-    right: 30px;
+    bottom: 36px;
+    right: 28px;
     z-index: 25;
   }
 
   .touch-action-btn {
-    width: 76px;
-    height: 76px;
+    width: 80px;
+    height: 80px;
     background: linear-gradient(135deg, #0284c7, #2563eb);
     border: 2px solid rgba(255, 255, 255, 0.4);
     border-radius: 50%;
@@ -1066,27 +1079,280 @@ html, body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
-    font-size: 1.5rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    font-size: 1.6rem;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .touch-action-btn label {
-    font-size: 0.65rem;
+    font-size: 0.62rem;
     font-weight: 600;
+    pointer-events: none;
   }
 
+  /* Hotbar lifted above joystick */
   #bottom-hud {
-    bottom: 125px;
-    padding: 6px 10px;
+    bottom: 136px;
+    padding: 6px 12px;
+    max-width: calc(100vw - 200px);
   }
 
   .slot {
-    width: 44px;
-    height: 44px;
+    width: 46px;
+    height: 46px;
   }
 
   .slot-icon {
-    font-size: 1.3rem;
+    font-size: 1.35rem;
+  }
+
+  /* Codex: stack tabs on top */
+  .codex-layout {
+    flex-direction: column;
+  }
+
+  .codex-nav {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 8px;
+    gap: 4px;
+  }
+
+  .codex-tab-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+    padding: 8px 10px;
+    font-size: 0.82rem;
+  }
+
+  .codex-content {
+    padding: 16px;
+  }
+
+  .modal-large {
+    height: 90vh;
+    height: 90dvh;
+  }
+}
+
+/* ── Tablet portrait (481px – 768px) ── */
+@media (max-width: 768px) {
+  #top-hud {
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    gap: 6px;
+  }
+
+  .time-card {
+    gap: 7px;
+  }
+
+  .clock-display {
+    font-size: 0.95rem;
+  }
+
+  .day-badge {
+    font-size: 0.74rem;
+    padding: 3px 8px;
+  }
+
+  .weather-badge {
+    font-size: 0.75rem;
+  }
+
+  .equip-badge span {
+    display: none; /* show only emoji on tablets */
+  }
+
+  #toast-container {
+    top: auto;
+    bottom: 220px;
+    right: 10px;
+    left: 10px;
+    max-width: 100%;
+  }
+
+  .modal-dialog {
+    max-width: 96vw;
+    max-height: 94vh;
+    max-height: 94dvh;
+  }
+
+  .welcome-panel {
+    padding: 18px 16px 16px;
+  }
+
+  .end-panel {
+    padding: 28px 20px;
+  }
+
+  .end-title {
+    font-size: 1.6rem;
+  }
+
+  .end-icon {
+    font-size: 3rem;
+  }
+
+  .hotbar-grid {
+    gap: 6px;
+  }
+}
+
+/* ── Phone portrait (≤ 480px) ── */
+@media (max-width: 480px) {
+  #top-hud {
+    top: 6px;
+    left: 6px;
+    right: 6px;
+    gap: 5px;
+  }
+
+  .hud-card {
+    padding: 5px 10px;
+  }
+
+  .time-card {
+    gap: 5px;
+  }
+
+  .clock-display {
+    font-size: 0.85rem;
+  }
+
+  .day-badge {
+    font-size: 0.68rem;
+    padding: 3px 6px;
+  }
+
+  .weather-badge {
+    display: none; /* too crowded on small phones */
+  }
+
+  #stats-hud {
+    gap: 6px;
+  }
+
+  .stat-row {
+    min-width: 58px;
+  }
+
+  /* Smaller joystick on phones */
+  #joystick-zone {
+    bottom: 28px;
+    left: 18px;
+    width: 110px;
+    height: 110px;
+  }
+
+  #joystick-knob {
+    width: 44px;
+    height: 44px;
+    top: 33px;
+    left: 33px;
+  }
+
+  #touch-action-buttons {
+    bottom: 28px;
+    right: 18px;
+  }
+
+  .touch-action-btn {
+    width: 68px;
+    height: 68px;
+    font-size: 1.35rem;
+  }
+
+  #bottom-hud {
+    bottom: 126px;
+    padding: 5px 8px;
+    max-width: calc(100vw - 170px);
+  }
+
+  .hotbar-grid {
+    gap: 4px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+
+  .hotbar-grid::-webkit-scrollbar { display: none; }
+
+  .slot {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+  }
+
+  .slot-icon {
+    font-size: 1.1rem;
+  }
+
+  .slot-key {
+    font-size: 0.55rem;
+  }
+
+  /* Full-screen modal on small phones */
+  .modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .modal-dialog {
+    max-width: 100%;
+    width: 100%;
+    max-height: 96vh;
+    max-height: 96dvh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+
+  .modal-large {
+    height: 96vh;
+    height: 96dvh;
+  }
+
+  /* Screen-fit welcome on small phones */
+  .welcome-panel {
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding: 16px 14px 14px;
+  }
+
+  .welcome-title {
+    font-size: 1.4rem;
+  }
+
+  .key-features-grid {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 6px;
+  }
+
+  .end-panel {
+    padding: 22px 16px;
+  }
+
+  .end-title {
+    font-size: 1.35rem;
+  }
+
+  .end-icon {
+    font-size: 2.5rem;
+  }
+
+  .btn-primary-action {
+    padding: 12px 24px;
+    font-size: 0.95rem;
+  }
+
+  #toast-container {
+    bottom: 200px;
+    right: 8px;
+    left: 8px;
   }
 }
 

@@ -57,7 +57,11 @@ class Game {
     document.getElementById('btn-start-game').addEventListener('click', () => {
       window.soundManager.ensureContext();
       this.closeModal('screen-welcome');
-      this.showToast('เริ่มการเอาชีวิตรอด! กด W A S D เพื่อเดิน และกด E เพื่อสำรวจ', 'success');
+      const isTouchDevice = window.matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window);
+      const hint = isTouchDevice
+        ? 'เริ่มแล้ว! ใช้จอยสติ๊กซ้ายเพื่อเดิน และปุ่ม 🖐️ เพื่อสำรวจ'
+        : 'เริ่มการเอาชีวิตรอด! กด W A S D เพื่อเดิน และกด E เพื่อสำรวจ';
+      this.showToast(hint, 'success');
     });
 
     document.getElementById('btn-restart-game').addEventListener('click', () => {
