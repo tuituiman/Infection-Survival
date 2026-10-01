@@ -40,10 +40,26 @@ class WeatherSystem {
       player.repellentHoursLeft = Math.max(0, player.repellentHoursLeft - deltaHour);
     }
 
+    // Deplete player's mask hours
+    if (player && player.maskHoursLeft > 0) {
+      player.maskHoursLeft = Math.max(0, player.maskHoursLeft - deltaHour);
+      if (player.maskHoursLeft <= 0) {
+        player.hasMask = false;
+        if (onNotify) {
+          onNotify('😷 หน้ากากอนามัยหมดอายุการใช้งานแล้ว (ควรสวมใส่ชิ้นใหม่)', 'warning');
+        }
+      }
+    }
+
     // New day transition
     if (this.hour >= 24) {
       this.hour -= 24;
       this.day++;
+
+      // Reset clinic quota for the new day
+      if (world && world.resetClinicDailyQuota) {
+        world.resetClinicDailyQuota();
+      }
 
       if (this.day > this.maxDays) {
         this.isVictory = true;
@@ -51,7 +67,7 @@ class WeatherSystem {
       }
 
       if (onNotify) {
-        onNotify(`🌅 เริ่มต้นวันที่ ${this.day} / ${this.maxDays}! รักษาสุขภาพให้ดี`, 'success');
+        onNotify(`🌅 เริ่มต้นวันที่ ${this.day} / ${this.maxDays}! รพ.สต. รีเซ็ตโควตายาประจำวันแล้ว`, 'success');
       }
     }
 
@@ -120,11 +136,26 @@ class WeatherSystem {
   }
 
   // Fast forward time during sleep
-  fastForward(hours) {
+  fastForward(hours, world = null, player = null) {
     this.hour += hours;
-    if (this.hour >= 24) {
+    while (this.hour >= 24) {
       this.hour -= 24;
       this.day++;
+      if (world && world.resetClinicDailyQuota) {
+        world.resetClinicDailyQuota();
+      }
+    }
+
+    if (player) {
+      if (player.repellentHoursLeft > 0) {
+        player.repellentHoursLeft = Math.max(0, player.repellentHoursLeft - hours);
+      }
+      if (player.maskHoursLeft > 0) {
+        player.maskHoursLeft = Math.max(0, player.maskHoursLeft - hours);
+        if (player.maskHoursLeft <= 0) {
+          player.hasMask = false;
+        }
+      }
     }
   }
 

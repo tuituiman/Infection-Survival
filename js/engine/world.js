@@ -18,6 +18,16 @@ class GameWorld {
     this.puddles = []; // Rain puddles (Leptospirosis risk)
     this.mosquitoSwarms = []; // Swarms buzzing around
 
+    // Clinic daily quotas to prevent hoarding & encourage disease prevention
+    this.clinicQuota = {
+      clinic_heal: { max: 1, usedToday: 0, label: 'ตรวจรักษาโรค' },
+      get_ors: { max: 2, usedToday: 0, label: 'เกลือแร่ ORS' },
+      get_para: { max: 3, usedToday: 0, label: 'พาราเซตามอล' },
+      get_boots: { max: 1, usedToday: 0, isOneTime: true, label: 'รองเท้าบูทยาง' },
+      get_protection_kit: { max: 1, usedToday: 0, label: 'ชุดกันยุง+ทรายอะเบท' },
+      get_mask: { max: 2, usedToday: 0, label: 'หน้ากากอนามัย' }
+    };
+
     this.initMap();
     this.initEntities();
   }
@@ -308,6 +318,26 @@ class GameWorld {
           }
         ]
       },
+      {
+        id: 'grocery_stall',
+        name: 'ร้านของชำป้าบัว',
+        icon: '🏪',
+        x: 16.5 * this.tileSize,
+        y: 17.5 * this.tileSize,
+        w: 64,
+        h: 50,
+        category: 'market',
+        dialogue: 'ป้าบัว: "ซื้ออะไรดีจ๊ะ มีหน้ากากอนามัยสำหรับใส่เดินในตลาดเพื่อป้องกันละอองฝอย และน้ำดื่มสะอาดนะ"',
+        options: [
+          {
+            id: 'buy_mask',
+            label: 'ซื้อหน้ากากอนามัย (ได้รับ: หน้ากากอนามัย)',
+            icon: '😷',
+            producesItem: 'face_mask',
+            action: 'buy_mask'
+          }
+        ]
+      },
 
       // --- CLINIC (รพ.สต.) ---
       {
@@ -319,18 +349,20 @@ class GameWorld {
         w: 70,
         h: 46,
         category: 'clinic',
-        dialogue: 'เจ้าหน้าที่สาธารณสุข: "สวัสดีค่ะ มีอาการไข้ ปวดเมื่อย หรือต้องการรับเวชภัณฑ์ป้องกันโรคติดต่ออะไรไหมคะ?"',
+        dialogue: 'เจ้าหน้าที่สาธารณสุข: "สวัสดีค่ะ มีอาการไข้ ปวดเมื่อย หรือต้องการรับเวชภัณฑ์ป้องกันโรคติดต่ออะไรไหมคะ? (เวชภัณฑ์มีโควตาจำกัดต่อวันเพื่อกระจายให้ทั่วถึง เน้นการป้องกันล่วงหน้าเป็นหลักค่ะ)"',
         options: [
           {
             id: 'checkup_heal',
             label: 'ตรวจสุขภาพ & รับการรักษาโรคทั้งหมด (ฉีดยา/ตรวจอาการ)',
             icon: '🩺',
+            quotaKey: 'clinic_heal',
             action: 'clinic_heal'
           },
           {
             id: 'get_ors',
             label: 'ขอรับผงเกลือแร่ ORS (รักษาท้องร่วง)',
             icon: '🧂',
+            quotaKey: 'get_ors',
             producesItem: 'ors_packet',
             action: 'get_ors'
           },
@@ -338,6 +370,7 @@ class GameWorld {
             id: 'get_para',
             label: 'ขอรับยาพาราเซตามอล (ลดไข้ ปลอดภัย)',
             icon: '💊',
+            quotaKey: 'get_para',
             producesItem: 'paracetamol',
             action: 'get_para'
           },
@@ -345,6 +378,7 @@ class GameWorld {
             id: 'get_boots',
             label: 'ขอเบิกรองเท้าบูทยาง (ป้องกันโรคฉี่หนู 100%)',
             icon: '👢',
+            quotaKey: 'get_boots',
             producesItem: 'boots',
             action: 'get_boots'
           },
@@ -352,8 +386,17 @@ class GameWorld {
             id: 'get_repellent',
             label: 'ขอรับโลชั่นทากันยุงและทรายอะเบท',
             icon: '🧴',
+            quotaKey: 'get_protection_kit',
             producesItems: ['mosquito_repellent', 'abate_sand'],
             action: 'get_protection_kit'
+          },
+          {
+            id: 'get_mask',
+            label: 'ขอรับหน้ากากอนามัย (ป้องกันไข้หวัดใหญ่)',
+            icon: '😷',
+            quotaKey: 'get_mask',
+            producesItem: 'face_mask',
+            action: 'get_mask'
           }
         ]
       }
@@ -434,6 +477,29 @@ class GameWorld {
     }
 
     return false;
+  }
+
+  // Check if player is in crowded zone (Village market / crowded shops -> Influenza risk)
+  isCrowdedZone(playerX, playerY) {
+    for (const ent of this.interactiveEntities) {
+      if (ent.category === 'market') {
+        const cx = ent.x + (ent.w || this.tileSize) / 2;
+        const cy = ent.y + (ent.h || this.tileSize) / 2;
+        if (Math.hypot(playerX - cx, playerY - cy) < 140) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  // Reset clinic daily quota every new day (except one-time items like boots)
+  resetClinicDailyQuota() {
+    for (const key in this.clinicQuota) {
+      if (!this.clinicQuota[key].isOneTime) {
+        this.clinicQuota[key].usedToday = 0;
+      }
+    }
   }
 }
 

@@ -386,6 +386,23 @@ class GameRenderer {
       ctx.fillRect(px + 5, py - 14, 2, 3);
     }
 
+    // Surgical Face Mask (if equipped and facing front/sides)
+    if (player.hasMask && player.facing !== 'up') {
+      ctx.fillStyle = '#f8fafc';
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 1;
+      if (player.facing === 'down') {
+        ctx.fillRect(px - 5, py - 11, 10, 6);
+        ctx.strokeRect(px - 5, py - 11, 10, 6);
+      } else if (player.facing === 'left') {
+        ctx.fillRect(px - 8, py - 11, 8, 6);
+        ctx.strokeRect(px - 8, py - 11, 8, 6);
+      } else if (player.facing === 'right') {
+        ctx.fillRect(px, py - 11, 8, 6);
+        ctx.strokeRect(px, py - 11, 8, 6);
+      }
+    }
+
     ctx.restore();
   }
 

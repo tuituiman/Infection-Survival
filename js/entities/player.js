@@ -17,6 +17,8 @@ class Player {
     // Equipment & Protection
     this.hasBoots = false;
     this.repellentHoursLeft = 0; // Duration remaining in game hours
+    this.hasMask = false;
+    this.maskHoursLeft = 0; // Duration remaining in game hours
 
     // Inventory: 8 slots max
     this.maxSlots = 8;
@@ -157,12 +159,20 @@ class Player {
       return;
     }
 
-    // Equipment (Boots)
+    // Equipment (Boots & Face Mask)
     if (item.type === 'equipment') {
       if (item.slot === 'feet') {
         this.hasBoots = true;
         if (window.soundManager) window.soundManager.playChime(440);
         onNotify(`สวมใส่ ${item.name} สำเร็จ! เท้าของคุณได้รับการป้องกันจากโรคฉี่หนู 100%`, 'success');
+        this.removeItem(item.id, 1);
+        return;
+      }
+      if (item.slot === 'face') {
+        this.hasMask = true;
+        this.maskHoursLeft = (this.maskHoursLeft || 0) + (item.buffDurationHours || 8);
+        if (window.soundManager) window.soundManager.playChime(520);
+        onNotify(`สวมใส่ ${item.name} สำเร็จ! ป้องกันละอองฝอยไข้หวัดใหญ่ได้นาน ${this.maskHoursLeft.toFixed(0)} ชั่วโมงในเกม`, 'success');
         this.removeItem(item.id, 1);
         return;
       }

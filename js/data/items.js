@@ -101,10 +101,10 @@ const ITEMS_DATA = {
     name: 'พาราเซตามอล 500mg',
     icon: '💊',
     type: 'medicine',
-    description: 'ยาลดไข้บรรเทาปวดที่ปลอดภัยที่สุดสำหรับโรคไข้เลือดออก',
+    description: 'ยาลดไข้บรรเทาปวดที่ปลอดภัยที่สุดสำหรับโรคไข้เลือดออกและไข้หวัดใหญ่',
     hpRestore: 20,
-    curesDisease: 'dengue',
-    effectDescription: 'ลดไข้ และช่วยรักษาโรคไข้เลือดออกอย่างปลอดภัย'
+    curesDiseases: ['dengue', 'influenza'],
+    effectDescription: 'ลดไข้ และช่วยรักษาโรคไข้เลือดออก / ไข้หวัดใหญ่'
   },
 
   aspirin: {
@@ -127,10 +127,21 @@ const ITEMS_DATA = {
     name: 'ยาปฏิชีวนะจำเพาะ',
     icon: '💉',
     type: 'medicine',
-    description: 'ยาฆ่าเชื้อแบคทีเรียสำหรับรักษาโรคไข้หูดับและโรคฉี่หนู',
+    description: 'ยาฆ่าเชื้อแบคทีเรียสำหรับรักษาโรคไข้หูดับและโรคฉี่หนู (ไม่มีผลต่อเชื้อไวรัส)',
     hpRestore: 30,
     curesDiseases: ['strep_suis', 'leptospirosis'],
     effectDescription: 'รักษาโรคไข้หูดับ และโรคฉี่หนู'
+  },
+
+  face_mask: {
+    id: 'face_mask',
+    name: 'หน้ากากอนามัย',
+    icon: '😷',
+    type: 'equipment',
+    slot: 'face',
+    description: 'สวมใส่ป้องกันละอองฝอยในพื้นที่ชุมชนแออัด ป้องกันไข้หวัดใหญ่ได้ถึง 90% (ใช้งานได้นาน 8 ชม.)',
+    buffDurationHours: 8,
+    effectDescription: 'ป้องกันเชื้อไข้หวัดใหญ่ในที่ชุมชนแออัด'
   }
 };
 

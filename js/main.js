@@ -15,6 +15,7 @@ class Game {
     this.renderer = new GameRenderer(this.canvas);
 
     this.isPaused = false;
+    this.isSleeping = false;
     this.activeModal = null;
     this.lastTime = performance.now();
     this.currentNearbyEntity = null;
@@ -215,15 +216,34 @@ class Game {
         missingMsg = `(ขาด: ${reqItem ? reqItem.name : opt.requiresItem})`;
       }
 
+      // Check clinic quota if applicable
+      let quotaInfo = null;
+      let remainingQuota = 99;
+      if (opt.quotaKey && this.world.clinicQuota && this.world.clinicQuota[opt.quotaKey]) {
+        quotaInfo = this.world.clinicQuota[opt.quotaKey];
+        remainingQuota = quotaInfo.max - quotaInfo.usedToday;
+        if (remainingQuota <= 0) {
+          canPerform = false;
+          missingMsg = quotaInfo.isOneTime ? '(คุณได้รับไปแล้วตลอดเกม)' : '(โควตาวันนี้หมดแล้ว พรุ่งนี้มารับใหม่)';
+        }
+      }
+
+      const quotaBadge = quotaInfo ? `
+        <div class="action-quota-badge ${remainingQuota <= 0 ? 'depleted' : ''}">
+          โควตา: เหลือ ${Math.max(0, remainingQuota)}/${quotaInfo.max} ${quotaInfo.isOneTime ? '(จำกัด 1 ชิ้น)' : '(วันนี้)'}
+        </div>
+      ` : '';
+
       card.innerHTML = `
         <div class="action-info">
           <span class="action-icon">${opt.icon || '👉'}</span>
           <div class="action-text">
             <h4>${opt.label}</h4>
-            ${missingMsg ? `<p style="color: #ef4444;">${missingMsg}</p>` : ''}
+            ${quotaBadge}
+            ${missingMsg ? `<p style="color: #ef4444; margin-top: 4px;">${missingMsg}</p>` : ''}
           </div>
         </div>
-        <span class="action-badge">${canPerform ? 'เลือกทำ' : 'ไอเทมไม่พอ'}</span>
+        <span class="action-badge">${canPerform ? 'เลือกทำ' : (remainingQuota <= 0 ? 'โควตาหมด' : 'ไอเทมไม่พอ')}</span>
       `;
 
       if (canPerform) {
@@ -266,20 +286,19 @@ class Game {
       });
     }
 
+    // Track clinic quota usage
+    if (opt.quotaKey && this.world.clinicQuota && this.world.clinicQuota[opt.quotaKey]) {
+      this.world.clinicQuota[opt.quotaKey].usedToday++;
+    }
+
     // Specific Action Handlers
     switch (opt.action) {
       case 'sleep_safe':
-        this.weather.fastForward(7); // Sleep 7 hours
-        this.survival.sleep(7);
-        this.showToast('คุณกางมุ้งและนอนหลับอย่างปลอดภัย ฟื้นฟูพลังงานเต็มที่!', 'success');
+        this.sleepFade(7, null, true);
         break;
 
       case 'sleep_risky':
-        this.weather.fastForward(7);
-        this.survival.sleep(7);
-        if (opt.risk) {
-          this.disease.evaluateRisk(opt.risk, (msg, type) => this.showToast(msg, type));
-        }
+        this.sleepFade(7, opt.risk, false);
         break;
 
       case 'cook_pork':
@@ -329,9 +348,48 @@ class Game {
       case 'ask_strep':
         this.openCodex('strep_suis');
         break;
+
+      case 'buy_mask':
+        this.showToast('ซื้อหน้ากากอนามัยสำเร็จ! สวมใส่เพื่อป้องกันละอองฝอยในตลาด', 'success');
+        break;
+
+      case 'get_mask':
+        this.showToast('รับหน้ากากอนามัยจาก รพ.สต. สำเร็จ! สวมใส่ป้องกันโรคในที่ชุมชน', 'success');
+        break;
     }
 
     this.updateInventoryUI();
+  }
+
+  // Sleep Fade Transition
+  sleepFade(hours = 7, risk = null, isSafe = true) {
+    const overlay = document.getElementById('sleep-overlay');
+    const textEl = document.getElementById('sleep-text');
+    const subtextEl = document.getElementById('sleep-subtext');
+    if (textEl) textEl.textContent = 'zzz... กำลังนอนหลับพักผ่อน';
+    if (subtextEl) subtextEl.textContent = `เวลาผ่านไป ${hours} ชั่วโมง`;
+    if (overlay) overlay.classList.add('active');
+
+    this.isSleeping = true;
+    setTimeout(() => {
+      // Advance time & survival metrics
+      this.weather.fastForward(hours, this.world, this.player);
+      this.survival.sleep(hours);
+
+      if (isSafe) {
+        this.showToast('คุณกางมุ้งและนอนหลับอย่างปลอดภัย ฟื้นฟูพลังงานเต็มที่!', 'success');
+      } else if (risk) {
+        this.disease.evaluateRisk(risk, (msg, type) => this.showToast(msg, type));
+      }
+
+      setTimeout(() => {
+        if (overlay) overlay.classList.remove('active');
+        this.isSleeping = false;
+        this.showToast(`🌅 ตื่นนอนแล้ว! ขณะนี้เวลา ${this.weather.getTimeFormatted()}`, 'normal');
+        this.updateUI();
+        this.updateInventoryUI();
+      }, 750);
+    }, 700);
   }
 
   // --- UI Updates ---
@@ -378,6 +436,17 @@ class Game {
       badgeRepellent.innerHTML = '🧴 <span>ไม่มียากันยุง</span>';
     }
 
+    const badgeMask = document.getElementById('badge-mask');
+    if (badgeMask) {
+      if (this.player.hasMask && this.player.maskHoursLeft > 0) {
+        badgeMask.className = 'equip-badge active';
+        badgeMask.innerHTML = `😷 <span>สวมหน้ากาก (${this.player.maskHoursLeft.toFixed(1)}ชม.)</span>`;
+      } else {
+        badgeMask.className = 'equip-badge';
+        badgeMask.innerHTML = '😷 <span>ไม่มีหน้ากาก</span>';
+      }
+    }
+
     // Active Diseases Badges
     const diseaseContainer = document.getElementById('active-diseases-container');
     diseaseContainer.innerHTML = '';
@@ -396,7 +465,7 @@ class Game {
     const vigDiarrhea = document.getElementById('vignette-diarrhea');
     const vigDanger = document.getElementById('vignette-danger');
 
-    vigFever.style.opacity = this.disease.hasDisease('dengue') ? '0.75' : '0';
+    vigFever.style.opacity = (this.disease.hasDisease('dengue') || this.disease.hasDisease('influenza')) ? '0.75' : '0';
     vigDiarrhea.style.opacity = this.disease.hasDisease('diarrhea') ? '0.65' : '0';
     vigDanger.style.opacity = (this.survival.hp < 25) ? '0.85' : '0';
 
@@ -495,34 +564,36 @@ class Game {
       this.lastTime = currentTime;
 
       if (!this.isPaused) {
-        // 1. Process Input Movement
-        const moveVec = this.input.updateMovement();
-        this.player.update(dt, moveVec, this.world, this.disease);
+        if (!this.isSleeping) {
+          // 1. Process Input Movement
+          const moveVec = this.input.updateMovement();
+          this.player.update(dt, moveVec, this.world, this.disease);
 
-        // 2. Check Interactive Entity Proximity
-        this.currentNearbyEntity = this.world.getNearbyEntity(this.player.x, this.player.y);
-        const promptEl = document.getElementById('interaction-prompt');
-        const promptText = document.getElementById('prompt-text');
+          // 2. Check Interactive Entity Proximity
+          this.currentNearbyEntity = this.world.getNearbyEntity(this.player.x, this.player.y);
+          const promptEl = document.getElementById('interaction-prompt');
+          const promptText = document.getElementById('prompt-text');
 
-        if (this.currentNearbyEntity) {
-          promptEl.classList.remove('hidden');
-          promptText.textContent = `กด E หรือแตะ เพื่อ [${this.currentNearbyEntity.name}]`;
-        } else {
-          promptEl.classList.add('hidden');
-        }
+          if (this.currentNearbyEntity) {
+            promptEl.classList.remove('hidden');
+            promptText.textContent = `กด E หรือแตะ เพื่อ [${this.currentNearbyEntity.name}]`;
+          } else {
+            promptEl.classList.add('hidden');
+          }
 
-        // 3. Handle Interaction Input Trigger
-        if (this.input.consumeInteract() && this.currentNearbyEntity) {
-          this.handleEntityInteraction(this.currentNearbyEntity);
-        }
+          // 3. Handle Interaction Input Trigger
+          if (this.input.consumeInteract() && this.currentNearbyEntity) {
+            this.handleEntityInteraction(this.currentNearbyEntity);
+          }
 
-        // 4. Hotbar Slot Keyboard Shortcuts (1-8)
-        const hotbarTrigger = this.input.consumeHotbarTrigger();
-        if (hotbarTrigger !== null) {
-          this.player.useItem(hotbarTrigger, this.survival, this.disease, (msg, type) => {
-            this.showToast(msg, type);
-          });
-          this.updateInventoryUI();
+          // 4. Hotbar Slot Keyboard Shortcuts (1-8)
+          const hotbarTrigger = this.input.consumeHotbarTrigger();
+          if (hotbarTrigger !== null) {
+            this.player.useItem(hotbarTrigger, this.survival, this.disease, (msg, type) => {
+              this.showToast(msg, type);
+            });
+            this.updateInventoryUI();
+          }
         }
 
         // 5. Update Systems

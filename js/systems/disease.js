@@ -49,6 +49,9 @@ class DiseaseSystem {
       case 'diarrhea':
         infection.damagePerSec = 0.6; // Primary threat is severe dehydration
         break;
+      case 'influenza':
+        infection.damagePerSec = 0.8; // High fever, energy drains 2x as fast
+        break;
     }
 
     this.activeInfections.push(infection);
@@ -130,6 +133,25 @@ class DiseaseSystem {
           disease: 'dengue',
           chance: chance,
           message: 'ยุงลายบินตอมและกัดคุณในที่รก! เชื้อไวรัสเดงกีเข้าสู่กระแสเลือด...'
+        }, onNotify);
+      }
+    }
+
+    // 3. Check Crowded Zone (Influenza / ไข้หวัดใหญ่)
+    if (world.isCrowdedZone && world.isCrowdedZone(player.x, player.y)) {
+      if (player.hasMask && player.maskHoursLeft > 0) {
+        // Mask provides 90% protection, very low chance (1.5%)
+        this.evaluateRisk({
+          disease: 'influenza',
+          chance: 0.015,
+          message: 'แม้สวมหน้ากาก แต่ละอองฝอยหนาแน่นมาก เชื้อไข้หวัดใหญ่เล็ดลอดเข้ามา...'
+        }, onNotify);
+      } else {
+        // Unprotected in crowded area!
+        this.evaluateRisk({
+          disease: 'influenza',
+          chance: 0.15,
+          message: 'คุณอยู่ในพื้นที่ชุมชนแออัดโดยไม่สวมหน้ากาก! สูดละอองฝอยติดเชื้อไวรัสไข้หวัดใหญ่...'
         }, onNotify);
       }
     }

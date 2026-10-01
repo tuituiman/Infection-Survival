@@ -1083,3 +1083,70 @@ kbd {
   font-size: 0.78rem;
   margin: 0 2px;
 }
+
+/* Sleep Fade Overlay */
+.sleep-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.96);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sleep-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.sleep-modal-content {
+  text-align: center;
+  color: #fff;
+  animation: sleepPulse 2s infinite ease-in-out;
+}
+
+.sleep-icon {
+  font-size: 3.5rem;
+  margin-bottom: 12px;
+}
+
+.sleep-text {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #f8fafc;
+  margin-bottom: 8px;
+}
+
+.sleep-subtext {
+  font-size: 1rem;
+  color: #94a3b8;
+}
+
+@keyframes sleepPulse {
+  0%, 100% { transform: scale(1); opacity: 0.92; }
+  50% { transform: scale(1.06); opacity: 1; }
+}
+
+/* Action Quota Badges */
+.action-quota-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: rgba(14, 165, 233, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(14, 165, 233, 0.35);
+  margin-top: 4px;
+}
+
+.action-quota-badge.depleted {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+

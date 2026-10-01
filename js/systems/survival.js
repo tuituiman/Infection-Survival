@@ -34,10 +34,16 @@ class SurvivalSystem {
       thirstRate *= 1.3;
     }
 
-    // Apply decaye
+    // Influenza causes severe exhaustion and muscle weakness (doubles energy drain)
+    let energyRate = this.energyDecayPerSec;
+    if (diseaseSystem && diseaseSystem.hasDisease('influenza')) {
+      energyRate *= 2.0;
+    }
+
+    // Apply decay
     this.hunger = Math.max(0, this.hunger - this.hungerDecayPerSec * dt);
     this.thirst = Math.max(0, this.thirst - thirstRate * dt);
-    this.energy = Math.max(0, this.energy - this.energyDecayPerSec * dt);
+    this.energy = Math.max(0, this.energy - energyRate * dt);
 
     // Starvation / Dehydration HP damage
     if (this.hunger <= 0) {
@@ -74,11 +80,12 @@ class SurvivalSystem {
     }
   }
 
-  // Restore needs during sleep
-  sleep(hours = 6) {
-    this.energy = Math.min(100, this.energy + hours * 16);
-    this.hunger = Math.max(0, this.hunger - hours * 4);
-    this.thirst = Math.max(0, this.thirst - hours * 6);
+  // Restore needs during sleep (balanced for 6-7 hours of fast-forward)
+  sleep(hours = 7) {
+    this.energy = Math.min(100, this.energy + hours * 14); // 7h -> +98%
+    this.hp = Math.min(this.maxHp, this.hp + hours * 1.5); // Minor natural recovery during rest
+    this.hunger = Math.max(0, this.hunger - hours * 3.5); // 7h -> -24.5%
+    this.thirst = Math.max(0, this.thirst - hours * 5.0); // 7h -> -35%
   }
 
   washHands() {
