@@ -144,6 +144,14 @@ class WeatherSystem {
       if (world && world.resetClinicDailyQuota) {
         world.resetClinicDailyQuota();
       }
+      if (this.day > this.maxDays) {
+        this.isVictory = true;
+        break;
+      }
+    }
+
+    if (this.day > this.maxDays) {
+      this.isVictory = true;
     }
 
     if (player) {

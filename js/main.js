@@ -388,6 +388,7 @@ class Game {
         this.showToast(`🌅 ตื่นนอนแล้ว! ขณะนี้เวลา ${this.weather.getTimeFormatted()}`, 'normal');
         this.updateUI();
         this.updateInventoryUI();
+        this.checkEndGame();
       }, 750);
     }, 700);
   }
@@ -546,11 +547,22 @@ class Game {
       return true;
     }
 
-    if (this.weather.isVictory) {
+    if (this.weather.isVictory || this.weather.day > this.weather.maxDays) {
+      this.weather.isVictory = true;
       this.isPaused = true;
+      this.activeModal = 'screen-victory';
       const screen = document.getElementById('screen-victory');
-      document.getElementById('victory-stats').textContent = `สุดยอดมาก! คุณมีวินัยในการกินสุก ดื่มน้ำต้มสุก สวมบูทป้องกัน และรักษาความสะอาดจนรอดชีวิตครบ 7 วันเต็ม`;
-      screen.classList.remove('hidden');
+      const victoryStats = document.getElementById('victory-stats');
+      if (victoryStats) {
+        victoryStats.innerHTML = `
+          <p style="margin-bottom: 8px;">🎉 สุดยอดมาก! คุณมีวินัยในการกินสุก ดื่มน้ำต้มสุก สวมบูทป้องกัน สวมหน้ากากอนามัย และรักษาความสะอาดจนรอดชีวิตครบ ${this.weather.maxDays} วันเต็ม</p>
+          <div style="font-size: 0.85rem; color: #94a3b8; background: rgba(255,255,255,0.06); padding: 8px 12px; border-radius: 8px;">
+            พลังชีวิตคงเหลือ: ${Math.round(this.survival.hp)}% | สถิติติดเชื้อสะสม: ${this.disease.totalInfectionsContracted} ครั้ง
+          </div>
+        `;
+      }
+      if (screen) screen.classList.remove('hidden');
+      if (window.soundManager) window.soundManager.playChime(660);
       return true;
     }
 

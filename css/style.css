@@ -549,21 +549,23 @@ html, body {
    Modals & Panels
    ========================================================================== */
 .modal-overlay {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(5, 10, 18, 0.75);
+  width: 100vw;
+  height: 100vh;
+  background: rgba(5, 10, 18, 0.8);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 50;
-  padding: 20px;
+  padding: 16px;
   opacity: 1;
   transition: opacity 0.25s ease;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-overlay.hidden {
@@ -573,16 +575,19 @@ html, body {
 
 .modal-dialog {
   width: 100%;
-  max-width: 520px;
-  max-height: 88vh;
+  max-width: 540px;
+  max-height: 92vh;
+  max-height: 92dvh;
   display: flex;
   flex-direction: column;
   background: #111827;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-panel);
-  overflow: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   animation: zoom-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  margin: auto;
 }
 
 .modal-large {
@@ -890,9 +895,10 @@ html, body {
 
 /* Welcome Panel Customization */
 .welcome-panel {
-  max-width: 600px;
+  max-width: 580px;
   text-align: center;
-  padding: 36px 30px;
+  padding: 24px 22px 20px;
+  overflow-y: auto;
 }
 
 .welcome-badge {
@@ -900,21 +906,21 @@ html, body {
   background: rgba(56, 189, 248, 0.15);
   color: #38bdf8;
   border: 1px solid rgba(56, 189, 248, 0.3);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 1.5px;
-  padding: 4px 12px;
+  padding: 3px 10px;
   border-radius: 20px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .welcome-title {
   font-family: var(--font-display);
-  font-size: 2.2rem;
+  font-size: 1.8rem;
   font-weight: 800;
   line-height: 1.15;
   color: #f8fafc;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .welcome-title span {
@@ -924,10 +930,10 @@ html, body {
 }
 
 .welcome-desc {
-  font-size: 0.95rem;
+  font-size: 0.86rem;
   color: #94a3b8;
-  line-height: 1.6;
-  margin-bottom: 24px;
+  line-height: 1.5;
+  margin-bottom: 14px;
 }
 
 .welcome-desc strong {
@@ -936,9 +942,9 @@ html, body {
 
 .key-features-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-bottom: 28px;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+  margin-bottom: 18px;
   text-align: left;
 }
 
@@ -946,24 +952,34 @@ html, body {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-md);
-  padding: 12px;
+  padding: 8px 10px;
 }
 
 .f-icon {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   display: block;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .feature-item h4 {
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   font-weight: 600;
   color: #f1f5f9;
+  margin-bottom: 2px;
 }
 
 .feature-item small {
-  font-size: 0.76rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
+  line-height: 1.3;
+  display: block;
+}
+
+.welcome-panel .btn-primary-action {
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+  display: inline-block;
 }
 
 /* ==========================================================================
