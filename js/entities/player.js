@@ -87,16 +87,47 @@ class Player {
     const existing = this.inventory.find(slot => slot.itemId === itemId);
     if (existing) {
       existing.count += count;
+      if (itemData.freshnessMaxHours && !existing.freshnessLeftHours) {
+        existing.freshnessLeftHours = itemData.freshnessMaxHours;
+      }
       return true;
     }
 
     // Check if free slot exists
     if (this.inventory.length < this.maxSlots) {
-      this.inventory.push({ itemId, count });
+      const newSlot = { itemId, count };
+      if (itemData.freshnessMaxHours) {
+        newSlot.freshnessLeftHours = itemData.freshnessMaxHours;
+      }
+      this.inventory.push(newSlot);
       return true;
     }
 
     return false; // Inventory full
+  }
+
+  // Update freshness of perishable food carried in backpack
+  updateFoodFreshness(deltaHour, weatherSystem, onNotify) {
+    const isHot = weatherSystem && (weatherSystem.weatherType === 'hot' || weatherSystem.isHotSun());
+    const rateMultiplier = isHot ? 2.0 : 1.0;
+
+    for (const slot of this.inventory) {
+      const itemData = window.ITEMS_DATA[slot.itemId];
+      if (itemData && itemData.freshnessMaxHours) {
+        if (slot.freshnessLeftHours === undefined) {
+          slot.freshnessLeftHours = itemData.freshnessMaxHours;
+        }
+        slot.freshnessLeftHours -= deltaHour * rateMultiplier;
+
+        if (slot.freshnessLeftHours <= 0) {
+          slot.itemId = 'spoiled_food';
+          delete slot.freshnessLeftHours;
+          if (onNotify) {
+            onNotify('🪰 อาหารปรุงสุกในกระเป๋าของคุณบูดเน่าแล้ว! (ควรเก็บในตู้กับข้าวที่บ้าน)', 'warning');
+          }
+        }
+      }
+    }
   }
 
   // Remove item count

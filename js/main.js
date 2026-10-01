@@ -11,6 +11,7 @@ class Game {
     this.survival = new SurvivalSystem();
     this.disease = new DiseaseSystem();
     this.weather = new WeatherSystem();
+    this.quests = new QuestSystem();
     this.input = window.inputController;
     this.renderer = new GameRenderer(this.canvas);
 
@@ -19,6 +20,7 @@ class Game {
     this.activeModal = null;
     this.lastTime = performance.now();
     this.currentNearbyEntity = null;
+    this.lastTrackedDay = this.weather.day;
 
     this.initUI();
     this.initCodex();
@@ -52,6 +54,35 @@ class Game {
     document.getElementById('btn-close-interact').addEventListener('click', () => {
       this.closeModal('modal-interaction');
     });
+
+    // Quests & Investigation & Cupboard Modal Controls
+    const btnQuests = document.getElementById('btn-quests');
+    if (btnQuests) {
+      btnQuests.addEventListener('click', () => {
+        this.openQuestsModal();
+      });
+    }
+
+    const btnCloseQuests = document.getElementById('btn-close-quests');
+    if (btnCloseQuests) {
+      btnCloseQuests.addEventListener('click', () => {
+        this.closeModal('modal-quests');
+      });
+    }
+
+    const btnCloseInvestigation = document.getElementById('btn-close-investigation');
+    if (btnCloseInvestigation) {
+      btnCloseInvestigation.addEventListener('click', () => {
+        this.closeModal('modal-investigation');
+      });
+    }
+
+    const btnCloseCupboard = document.getElementById('btn-close-cupboard');
+    if (btnCloseCupboard) {
+      btnCloseCupboard.addEventListener('click', () => {
+        this.closeModal('modal-cupboard');
+      });
+    }
 
     // Start & Restart
     document.getElementById('btn-start-game').addEventListener('click', () => {
@@ -191,6 +222,193 @@ class Game {
     }, 3800);
   }
 
+  // --- Quests System UI ---
+  openQuestsModal() {
+    this.renderQuests();
+    this.openModal('modal-quests');
+  }
+
+  renderQuests() {
+    const listEl = document.getElementById('quests-list');
+    const tokenEl = document.getElementById('quests-token-count');
+    if (!listEl) return;
+
+    if (tokenEl) {
+      tokenEl.textContent = `🏅 เหรียญรางวัล อสม. สะสม: ${this.quests.healthTokens} เหรียญ`;
+    }
+
+    listEl.innerHTML = '';
+    this.quests.activeQuests.forEach(q => {
+      const card = document.createElement('div');
+      card.className = `quest-card ${q.completed ? 'completed' : ''}`;
+      const pct = Math.min(100, Math.round((q.progress / q.target) * 100));
+
+      card.innerHTML = `
+        <div class="quest-card-header">
+          <div class="quest-title-box">
+            <span class="quest-icon">${q.icon}</span>
+            <div class="quest-title-text">
+              <h4>${q.title}</h4>
+              <p>${q.description}</p>
+            </div>
+          </div>
+          <span class="quest-reward-badge">🏅 +${q.rewardTokens} เหรียญ</span>
+        </div>
+        <div class="quest-progress-bar-container">
+          <div class="quest-progress-fill" style="width: ${pct}%"></div>
+        </div>
+        <div class="quest-card-footer">
+          <span class="quest-status-text">${q.completed ? '✅ ภารกิจสำเร็จแล้ว!' : `ความคืบหน้า: ${q.progress}/${q.target}`}</span>
+          ${q.completed ? '<span class="quest-done-tag">รับรางวัลแล้ว</span>' : ''}
+        </div>
+      `;
+      listEl.appendChild(card);
+    });
+  }
+
+  // --- Disease Investigation UI ---
+  openInvestigation(npc) {
+    if (!npc) return;
+    this.currentInvestigatingNPC = npc;
+    const nameEl = document.getElementById('investigation-npc-name');
+    const quoteEl = document.getElementById('investigation-quote');
+    const choicesEl = document.getElementById('investigation-options');
+
+    if (nameEl) nameEl.textContent = `${npc.icon} ${npc.name} (${npc.title})`;
+    if (quoteEl) quoteEl.textContent = `"${npc.symptomsQuote}"`;
+
+    if (!choicesEl) return;
+    choicesEl.innerHTML = '';
+
+    if (npc.investigated) {
+      choicesEl.innerHTML = `
+        <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; border-radius: 8px; padding: 14px; margin-bottom: 12px; color: #a7f3d0;">
+          <h4 style="color: #34d399; margin-bottom: 6px;">✅ คุณได้วินิจฉัยโรคให้ ${npc.name} ถูกต้องเรียบร้อยแล้ว</h4>
+          <p style="margin-bottom: 8px; font-size: 0.95rem;"><strong>ผลการวินิจฉัย:</strong> ${npc.correctDiagnosis === 'strep_suis' ? 'โรคไข้หูดับ' : (npc.correctDiagnosis === 'leptospirosis' ? 'โรคฉี่หนู' : 'โรคไข้หวัดใหญ่')}</p>
+          <p style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.5;"><em>"${npc.adviceLesson}"</em></p>
+        </div>
+      `;
+    } else {
+      npc.diagnosisChoices.forEach(choice => {
+        const btn = document.createElement('div');
+        btn.className = 'diag-choice-card';
+        btn.innerHTML = `
+          <div style="font-weight: 600; font-size: 0.95rem;">${choice.name}</div>
+          <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">แตะเพื่อระบุการวินิจฉัย</div>
+        `;
+
+        btn.addEventListener('click', () => {
+          if (choice.correct) {
+            npc.investigated = true;
+            npc.isSick = false;
+            if (window.soundManager) window.soundManager.playChime(600);
+            this.showToast(`วินิจฉัยถูกต้อง! ${npc.name} ปลอดภัยและได้รับการรักษาที่ตรงจุด`, 'success');
+            
+            this.quests.progress('investigate_illness', 1, this.player, (msg, type) => this.showToast(msg, type));
+            this.quests.healthTokens += 1;
+            this.player.addItem('health_token', 1);
+            this.showToast(`ได้รับเหรียญรางวัล อสม. 1 เหรียญ! 🏅`, 'success');
+
+            this.openInvestigation(npc);
+          } else {
+            if (window.soundManager) window.soundManager.playBuzz();
+            this.showToast(choice.feedback, 'error');
+          }
+        });
+
+        choicesEl.appendChild(btn);
+      });
+    }
+
+    this.openModal('modal-investigation');
+  }
+
+  // --- Food Cupboard Storage UI ---
+  openCupboardModal() {
+    this.renderCupboardStorage();
+    this.openModal('modal-cupboard');
+  }
+
+  renderCupboardStorage() {
+    const cupboardList = document.getElementById('cupboard-items-list');
+    const playerList = document.getElementById('player-food-list');
+    if (!cupboardList || !playerList) return;
+
+    cupboardList.innerHTML = '';
+    playerList.innerHTML = '';
+
+    // Render items in cupboard
+    if (this.world.cupboardInventory.length === 0) {
+      cupboardList.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85rem; padding: 12px; text-align: center;">ตู้กับข้าวว่างเปล่า</div>';
+    } else {
+      this.world.cupboardInventory.forEach((slot, idx) => {
+        const itemInfo = window.ITEMS_DATA[slot.itemId];
+        if (!itemInfo) return;
+        const row = document.createElement('div');
+        row.className = 'cupboard-item-row';
+        row.innerHTML = `
+          <div class="cupboard-item-info">
+            <span style="font-size: 1.3rem;">${itemInfo.icon}</span>
+            <div>
+              <div style="font-weight: 600; font-size: 0.9rem;">${itemInfo.name} x${slot.count}</div>
+              <div style="font-size: 0.75rem; color: #10b981;">🛡️ ปลอดภัย ไม่บูดเสีย</div>
+            </div>
+          </div>
+          <button class="btn btn-secondary btn-sm" style="padding: 4px 10px; font-size: 0.8rem;">หยิบใส่ตัว</button>
+        `;
+        row.querySelector('button').addEventListener('click', () => {
+          if (this.player.inventory.length >= this.player.maxSlots) {
+            this.showToast('กระเป๋าของคุณเต็มแล้ว!', 'error');
+            return;
+          }
+          this.world.cupboardInventory.splice(idx, 1);
+          this.player.addItem(slot.itemId, slot.count);
+          this.renderCupboardStorage();
+          this.updateInventoryUI();
+          this.showToast(`หยิบ ${itemInfo.name} ออกจากตู้กับข้าวแล้ว`, 'normal');
+        });
+        cupboardList.appendChild(row);
+      });
+    }
+
+    // Render food/drink items in player's inventory
+    const foodSlots = [];
+    this.player.inventory.forEach((slot, invIdx) => {
+      const itemInfo = window.ITEMS_DATA[slot.itemId];
+      if (itemInfo && (itemInfo.type === 'food' || itemInfo.type === 'water')) {
+        foodSlots.push({ slot, invIdx, itemInfo });
+      }
+    });
+
+    if (foodSlots.length === 0) {
+      playerList.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85rem; padding: 12px; text-align: center;">ไม่มีอาหารหรือเครื่องดื่มในกระเป๋า</div>';
+    } else {
+      foodSlots.forEach(({ slot, invIdx, itemInfo }) => {
+        const row = document.createElement('div');
+        row.className = 'cupboard-item-row';
+        const freshLeft = slot.freshnessLeftHours !== undefined ? ` (คงเหลือ ${Math.max(0, slot.freshnessLeftHours).toFixed(1)} ชม.)` : '';
+        row.innerHTML = `
+          <div class="cupboard-item-info">
+            <span style="font-size: 1.3rem;">${itemInfo.icon}</span>
+            <div>
+              <div style="font-weight: 600; font-size: 0.9rem;">${itemInfo.name} x${slot.count}</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">${itemInfo.description}${freshLeft}</div>
+            </div>
+          </div>
+          <button class="btn btn-secondary btn-sm" style="padding: 4px 10px; font-size: 0.8rem;">เก็บเข้าตู้</button>
+        `;
+        row.querySelector('button').addEventListener('click', () => {
+          this.player.inventory.splice(invIdx, 1);
+          this.world.cupboardInventory.push({ itemId: slot.itemId, count: slot.count });
+          this.renderCupboardStorage();
+          this.updateInventoryUI();
+          this.showToast(`เก็บ ${itemInfo.name} เข้าตู้กับข้าวเรียบร้อย`, 'success');
+        });
+        playerList.appendChild(row);
+      });
+    }
+  }
+
   // --- Interaction Modal Handler ---
   handleEntityInteraction(ent) {
     const modalBody = document.getElementById('modal-interact-body');
@@ -308,22 +526,26 @@ class Game {
       case 'cook_pork':
         if (window.soundManager) window.soundManager.playSizzle();
         this.showToast('ย่างเนื้อหมูจนสุก 100% ปลอดภัยจากเชื้อไข้หูดับ!', 'success');
+        this.quests.progress('cook_pork', 1, this.player, (msg, type) => this.showToast(msg, type));
         break;
 
       case 'boil_water':
         if (window.soundManager) window.soundManager.playSizzle();
         this.showToast('ต้มน้ำเดือดพล่าน ฆ่าเชื้อโรคสะอาด 100%!', 'success');
+        this.quests.progress('boil_water', 1, this.player, (msg, type) => this.showToast(msg, type));
         break;
 
       case 'wash_hands':
         this.survival.washHands();
         if (window.soundManager) window.soundManager.playConsume(true);
         this.showToast('ฟอกสบู่ล้างมือสะอาดแล้ว สุขอนามัยเต็ม 100%!', 'success');
+        this.quests.progress('wash_hands', 1, this.player, (msg, type) => this.showToast(msg, type));
         break;
 
       case 'apply_abate':
         ent.hasAbate = true;
         this.showToast('ใส่ทรายอะเบทในโอ่งแล้ว ลูกน้ำยุงลายไม่สามารถเจริญเติบโตได้!', 'success');
+        this.quests.progress('apply_abate', 1, this.player, (msg, type) => this.showToast(msg, type));
         break;
 
       case 'cover_jar':
@@ -334,6 +556,7 @@ class Game {
       case 'flip_shells':
         ent.cleared = true;
         this.showToast('คว่ำกะลาและทำลายแหล่งน้ำขังแล้ว ลดประชากรยุงลายในละแวกบ้าน!', 'success');
+        this.quests.progress('flip_shells', 1, this.player, (msg, type) => this.showToast(msg, type));
         break;
 
       case 'clinic_heal':
@@ -355,10 +578,36 @@ class Game {
 
       case 'buy_mask':
         this.showToast('ซื้อหน้ากากอนามัยสำเร็จ! สวมใส่เพื่อป้องกันละอองฝอยในตลาด', 'success');
+        this.quests.progress('get_mask', 1, this.player, (msg, type) => this.showToast(msg, type));
         break;
 
       case 'get_mask':
         this.showToast('รับหน้ากากอนามัยจาก รพ.สต. สำเร็จ! สวมใส่ป้องกันโรคในที่ชุมชน', 'success');
+        this.quests.progress('get_mask', 1, this.player, (msg, type) => this.showToast(msg, type));
+        break;
+
+      case 'open_cupboard':
+        this.openCupboardModal();
+        break;
+
+      case 'open_investigation':
+        this.openInvestigation(opt.npcRef || ent);
+        break;
+
+      case 'talk_npc':
+        this.showToast(ent.dialogue || 'สวัสดีจ้ะพ่อหนุ่ม/แม่หนู', 'normal');
+        break;
+
+      case 'exchange_token':
+        if (this.player.hasItem('health_token')) {
+          this.player.removeItem('health_token', 1);
+          this.player.addItem('cooked_pork', 1);
+          this.player.addItem('ors', 1);
+          if (window.soundManager) window.soundManager.playChime(550);
+          this.showToast('แลกเสบียง อสม. สำเร็จ! ได้รับหมูสุก 1 ชิ้น และผงเกลือแร่ ORS 1 ซอง', 'success');
+        } else {
+          this.showToast('คุณยังไม่มีเหรียญ อสม. พอ! ทำภารกิจช่วยชาวบ้านเพื่อรับเหรียญ', 'error');
+        }
         break;
     }
 
@@ -379,6 +628,7 @@ class Game {
       // Advance time & survival metrics
       this.weather.fastForward(hours, this.world, this.player);
       this.survival.sleep(hours);
+      this.player.updateFoodFreshness(hours, this.weather, (msg, type) => this.showToast(msg, type));
 
       if (isSafe) {
         this.showToast('คุณกางมุ้งและนอนหลับอย่างปลอดภัย ฟื้นฟูพลังงานเต็มที่!', 'success');
@@ -458,12 +708,26 @@ class Game {
     this.disease.activeInfections.forEach(inf => {
       const pill = document.createElement('div');
       pill.className = 'disease-pill';
-      pill.innerHTML = `<span>${inf.icon}</span> <span>ติดเชื้อ: ${inf.name}</span>`;
+      pill.innerHTML = inf.stage === 'incubating'
+        ? `<span>${inf.icon}</span> <span>ระยะฟักตัว: ${inf.name} (เริ่มมีอาการ)</span>`
+        : `<span>${inf.icon}</span> <span>ติดเชื้อ: ${inf.name}</span>`;
+      if (inf.stage === 'incubating') {
+        pill.style.borderColor = '#f59e0b';
+        pill.style.color = '#fde68a';
+      }
       pill.addEventListener('click', () => {
         this.openCodex(inf.id);
       });
       diseaseContainer.appendChild(pill);
     });
+
+    // Update quest badge counter
+    const badgeQuest = document.getElementById('badge-quest-count');
+    if (badgeQuest) {
+      const activeUncompleted = this.quests.activeQuests.filter(q => !q.completed).length;
+      badgeQuest.textContent = activeUncompleted > 0 ? activeUncompleted : '✓';
+      badgeQuest.style.background = activeUncompleted > 0 ? '#3b82f6' : '#10b981';
+    }
 
     // Screen Vignette Effects
     const vigFever = document.getElementById('vignette-fever');
@@ -584,6 +848,20 @@ class Game {
           // 1. Process Input Movement
           const moveVec = this.input.updateMovement();
           this.player.update(dt, moveVec, this.world, this.disease);
+
+          // Update NPCs
+          this.world.updateNPCs(dt);
+
+          // Update Food Freshness
+          const deltaGameHours = dt / this.weather.secondsPerGameHour;
+          this.player.updateFoodFreshness(deltaGameHours, this.weather, (msg, type) => this.showToast(msg, type));
+
+          // Check day change for daily quests
+          if (this.weather.day !== this.lastTrackedDay) {
+            this.lastTrackedDay = this.weather.day;
+            this.quests.generateDailyQuests(this.weather.day);
+            this.showToast(`📋 เริ่มต้นวันใหม่! มีภารกิจ อสม. ประจำวันที่ ${this.weather.day} เข้ามาแล้ว`, 'normal');
+          }
 
           // 2. Check Interactive Entity Proximity
           this.currentNearbyEntity = this.world.getNearbyEntity(this.player.x, this.player.y);

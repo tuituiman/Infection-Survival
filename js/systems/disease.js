@@ -25,40 +25,31 @@ class DiseaseSystem {
     const diseaseInfo = window.DISEASES_DATA[diseaseId];
     if (!diseaseInfo) return;
 
+    let baseDamage = 1.0;
+    switch (diseaseId) {
+      case 'dengue': baseDamage = 1.2; break;
+      case 'strep_suis': baseDamage = 1.8; break;
+      case 'leptospirosis': baseDamage = 1.0; break;
+      case 'diarrhea': baseDamage = 0.8; break;
+      case 'influenza': baseDamage = 0.8; break;
+    }
+
     const infection = {
       id: diseaseId,
       name: diseaseInfo.name,
       icon: diseaseInfo.icon,
-      severity: 1, // Scales up if untreated
+      stage: 'incubating', // Starts in incubation phase
+      incubationDurationSec: 32, // ~1.5 game hours
       elapsedSec: 0,
-      damagePerSec: 0
+      baseDamagePerSec: baseDamage,
+      damagePerSec: baseDamage * 0.2 // Minor initial discomfort
     };
-
-    // Specific damage tuning per disease
-    switch (diseaseId) {
-      case 'dengue':
-        infection.damagePerSec = 1.2; // Fever depletes HP steadily
-        break;
-      case 'strep_suis':
-        infection.damagePerSec = 1.8; // High bacterial toxicity
-        if (window.soundManager) window.soundManager.setHearingLoss(true);
-        break;
-      case 'leptospirosis':
-        infection.damagePerSec = 1.0; // Moderate HP loss, main debuff is 60% slow walk
-        break;
-      case 'diarrhea':
-        infection.damagePerSec = 0.6; // Primary threat is severe dehydration
-        break;
-      case 'influenza':
-        infection.damagePerSec = 0.8; // High fever, energy drains 2x as fast
-        break;
-    }
 
     this.activeInfections.push(infection);
     this.totalInfectionsContracted++;
 
     if (onNotify) {
-      onNotify(`⚠️ คุณติดเชื้อ "${diseaseInfo.name}"! ตรวจดูอาการและวิธีรักษาในสารานุกรม`, 'danger');
+      onNotify(`⚠️ ร่างกายเริ่มรับเชื้อ "${diseaseInfo.name}" (ระยะฟักตัว: เริ่มครั่นเนื้อครั่นตัว รีบไปตรวจที่ รพ.สต.)`, 'warning');
     }
   }
 
@@ -158,9 +149,22 @@ class DiseaseSystem {
   }
 
   // Update symptom effects and damage
-  update(dt, survivalSystem) {
+  update(dt, survivalSystem, onNotify) {
     for (const inf of this.activeInfections) {
       inf.elapsedSec += dt;
+
+      // Check incubation transition to active
+      if (inf.stage === 'incubating' && inf.elapsedSec >= inf.incubationDurationSec) {
+        inf.stage = 'active';
+        inf.damagePerSec = inf.baseDamagePerSec; // Full damage
+        if (inf.id === 'strep_suis' && window.soundManager) {
+          window.soundManager.setHearingLoss(true);
+        }
+        if (onNotify) {
+          onNotify(`🚨 เชื้อ "${inf.name}" พ้นระยะฟักตัวแล้ว! เริ่มมีอาการรุนแรงเฉียบพลัน`, 'danger');
+        }
+      }
+
       if (survivalSystem && !survivalSystem.isDead) {
         survivalSystem.hp -= inf.damagePerSec * dt;
 

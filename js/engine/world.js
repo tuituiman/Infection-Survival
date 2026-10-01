@@ -28,6 +28,14 @@ class GameWorld {
       get_mask: { max: 2, usedToday: 0, label: 'หน้ากากอนามัย' }
     };
 
+    // Cupboard storage (safe from spoilage)
+    this.cupboardInventory = [
+      { itemId: 'cooked_pork', count: 1 }
+    ];
+
+    // Village NPCs
+    this.npcs = (typeof window.createVillageNPCs === 'function') ? window.createVillageNPCs(this.tileSize) : [];
+
     this.initMap();
     this.initEntities();
   }
@@ -193,6 +201,25 @@ class GameWorld {
             label: 'ล้างมือด้วยสบู่และน้ำสะอาด (ฟื้นฟูสุขอนามัย)',
             icon: '✨',
             action: 'wash_hands'
+          }
+        ]
+      },
+      {
+        id: 'food_cupboard',
+        name: 'ตู้กับข้าวในบ้าน (ป้องกันอาหารบูด)',
+        icon: '🗄️',
+        x: 7.5 * this.tileSize,
+        y: 5.2 * this.tileSize,
+        w: 48,
+        h: 48,
+        category: 'storage',
+        dialogue: 'ตู้กับข้าวตาข่ายมิดชิด ป้องกันแมลงวันตอมและรักษาอาหารไม่ให้บูดเน่าจากความร้อน',
+        options: [
+          {
+            id: 'open_cupboard',
+            label: 'เปิดดูและจัดการอาหารในตู้กับข้าว',
+            icon: '🍽️',
+            action: 'open_cupboard'
           }
         ]
       },
@@ -397,6 +424,14 @@ class GameWorld {
             quotaKey: 'get_mask',
             producesItem: 'face_mask',
             action: 'get_mask'
+          },
+          {
+            id: 'exchange_tokens',
+            label: 'แลกของรางวัล อสม. (1 เหรียญจิตอาสา ➔ อาหารปลอดภัย + ORS)',
+            icon: '🏅',
+            requiresItem: 'health_token',
+            producesItems: ['cooked_pork', 'ors_packet'],
+            action: 'exchange_token'
           }
         ]
       }
@@ -437,6 +472,51 @@ class GameWorld {
       if (dist < minDist) {
         minDist = dist;
         nearest = ent;
+      }
+    }
+
+    // Also check Villager NPCs proximity
+    if (this.npcs) {
+      for (const npc of this.npcs) {
+        const dist = Math.hypot(playerX - npc.x, playerY - npc.y);
+        if (dist < minDist) {
+          minDist = dist;
+          const statusIcon = npc.getStatusBubble();
+          nearest = {
+            id: npc.id,
+            name: `${npc.name} (${npc.title}) ${statusIcon ? statusIcon : ''}`,
+            icon: npc.icon,
+            isNpc: true,
+            npcRef: npc,
+            dialogue: npc.isSick
+              ? `${npc.name}: "${npc.symptomsQuote}"`
+              : `${npc.name}: "${npc.normalDialogue}"`,
+            options: npc.isSick && !npc.investigated ? [
+              {
+                id: `investigate_${npc.id}`,
+                label: '🔍 สอบสวนโรค & ซักประวัติอาการ (ภารกิจ อสม.)',
+                icon: '📋',
+                action: 'open_investigation',
+                npcRef: npc
+              },
+              {
+                id: `talk_${npc.id}`,
+                label: 'คุยทักทายทั่วไป',
+                icon: '💬',
+                action: 'talk_npc',
+                npcRef: npc
+              }
+            ] : [
+              {
+                id: `talk_${npc.id}`,
+                label: 'คุยทักทายทั่วไป',
+                icon: '💬',
+                action: 'talk_npc',
+                npcRef: npc
+              }
+            ]
+          };
+        }
       }
     }
 
@@ -498,6 +578,15 @@ class GameWorld {
     for (const key in this.clinicQuota) {
       if (!this.clinicQuota[key].isOneTime) {
         this.clinicQuota[key].usedToday = 0;
+      }
+    }
+  }
+
+  // Update AI for all Village NPCs
+  updateNPCs(dt) {
+    if (this.npcs) {
+      for (const npc of this.npcs) {
+        npc.update(dt, this);
       }
     }
   }

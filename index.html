@@ -96,6 +96,9 @@
         <div id="active-diseases-container"></div>
 
         <div class="hud-card hud-actions">
+          <button id="btn-quests" class="hud-btn" title="ภารกิจ อสม. ประจำวัน">
+            📋 <span class="btn-text">ภารกิจ อสม.</span> <span id="badge-quest-count" class="badge-count">2</span>
+          </button>
           <button id="btn-codex" class="hud-btn" title="สารานุกรมโรคติดต่อ">
             📖 <span class="btn-text">สารานุกรมโรค</span>
           </button>
@@ -231,6 +234,71 @@
       </div>
     </div>
 
+    <!-- Daily Health Quests Modal -->
+    <div id="modal-quests" class="modal-overlay hidden">
+      <div class="modal-dialog glass-panel" style="max-width: 540px;">
+        <div class="modal-header">
+          <h2>📋 ภารกิจ อสม. ประจำวัน</h2>
+          <button class="btn-close-modal" id="btn-close-quests">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 12px;">
+            ช่วยดูแลสุขอนามัยชุมชน เมื่อทำภารกิจสำเร็จจะได้รับ <strong>เหรียญจิตอาสา (Health Token 🏅)</strong> นำไปแลกของรางวัลที่ รพ.สต.!
+          </p>
+          <div id="quests-list" class="quests-container"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Disease Investigation Modal (Epidemiology Quiz) -->
+    <div id="modal-investigation" class="modal-overlay hidden">
+      <div class="modal-dialog glass-panel" style="max-width: 600px;">
+        <div class="modal-header">
+          <h2>🔍 สอบสวนโรค: <span id="investigate-npc-name">ชาวบ้าน</span></h2>
+          <button class="btn-close-modal" id="btn-close-investigation">&times;</button>
+        </div>
+        <div class="modal-body" id="investigate-modal-body">
+          <div class="investigate-quote-box">
+            <div style="font-weight: 700; color: #f59e0b; margin-bottom: 6px;">💬 คำบอกเล่าอาการของผู้ป่วย:</div>
+            <p id="investigate-quote" style="font-size: 0.95rem; line-height: 1.6; color: #f8fafc; font-style: italic;"></p>
+          </div>
+
+          <div style="margin: 16px 0 10px; font-weight: 700; color: #38bdf8;">
+            🩺 ในฐานะ อสม. คุณวินิจฉัยว่าผู้ป่วยติดเชื้อโรคใด?
+          </div>
+
+          <div id="investigate-choices" class="action-grid"></div>
+
+          <div id="investigate-feedback" class="lesson-box hidden" style="margin-top: 14px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Food Cupboard Storage Modal -->
+    <div id="modal-cupboard" class="modal-overlay hidden">
+      <div class="modal-dialog glass-panel" style="max-width: 580px;">
+        <div class="modal-header">
+          <h2>🗄️ ตู้กับข้าวในบ้าน (ป้องกันอาหารบูด)</h2>
+          <button class="btn-close-modal" id="btn-close-cupboard">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 14px;">
+            อาหารที่เก็บในตู้กับข้าวจะ <strong>คงความสดและไม่บูดเน่าจากความร้อน</strong> สามารถเก็บไว้กินวันหลังได้
+          </p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+            <div class="storage-column">
+              <h4 style="font-size: 0.9rem; color: #38bdf8; margin-bottom: 8px;">🗄️ ในตู้กับข้าว</h4>
+              <div id="cupboard-items-list" class="storage-list"></div>
+            </div>
+            <div class="storage-column">
+              <h4 style="font-size: 0.9rem; color: #34d399; margin-bottom: 8px;">🎒 ในกระเป๋าเป้</h4>
+              <div id="backpack-food-list" class="storage-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Welcome / Start Overlay -->
     <div id="screen-welcome" class="modal-overlay">
       <div class="modal-dialog glass-panel welcome-panel">
@@ -287,6 +355,8 @@
   <script src="js/data/diseases.js"></script>
   <script src="js/data/items.js"></script>
   <script src="js/engine/input.js"></script>
+  <script src="js/entities/npc.js"></script>
+  <script src="js/systems/quests.js"></script>
   <script src="js/engine/world.js"></script>
   <script src="js/entities/player.js"></script>
   <script src="js/systems/survival.js"></script>

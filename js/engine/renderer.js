@@ -74,6 +74,9 @@ class GameRenderer {
     // 4. Draw Player Character
     this.drawPlayer(ctx, player);
 
+    // 4.5 Draw Village NPCs
+    this.drawNPCs(ctx, world);
+
     // 5. Draw Mosquito Swarms
     this.drawMosquitoes(ctx, world, player, dt);
 
@@ -287,6 +290,23 @@ class GameRenderer {
           }
           break;
 
+        case 'food_cupboard':
+          ctx.fillStyle = '#854d0e'; // Wood cupboard
+          ctx.fillRect(ent.x, ent.y, ent.w, ent.h);
+          ctx.strokeStyle = '#ca8a04';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(ent.x + 2, ent.y + 2, ent.w - 4, ent.h - 4);
+          // Wire mesh lines
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+          ctx.lineWidth = 1;
+          for (let ly = ent.y + 10; ly < ent.y + ent.h - 5; ly += 6) {
+            ctx.beginPath();
+            ctx.moveTo(ent.x + 4, ly);
+            ctx.lineTo(ent.x + ent.w - 4, ly);
+            ctx.stroke();
+          }
+          break;
+
         case 'meat_stall':
         case 'street_food':
           // Market stall with awning
@@ -404,6 +424,75 @@ class GameRenderer {
     }
 
     ctx.restore();
+  }
+
+  // Draw Village NPCs with walking anim & status bubbles
+  drawNPCs(ctx, world) {
+    if (!world.npcs) return;
+
+    for (const npc of world.npcs) {
+      ctx.save();
+      const nx = npc.x;
+      const ny = npc.y;
+
+      // Drop shadow
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+      ctx.beginPath();
+      ctx.ellipse(nx, ny + 12, 12, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Leg step offset
+      const legOffset = npc.isMoving ? Math.sin(npc.animTime) * 4 : 0;
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(nx - 7, ny + 7 + legOffset, 5, 7);
+      ctx.fillRect(nx + 2, ny + 7 - legOffset, 5, 7);
+
+      // Shirt
+      let shirtColor = '#059669'; // Green
+      if (npc.id === 'npc_somchai') shirtColor = '#dc2626'; // Red
+      if (npc.id === 'npc_sai') shirtColor = '#9333ea'; // Purple
+
+      ctx.fillStyle = shirtColor;
+      ctx.beginPath();
+      ctx.roundRect(nx - 9, ny - 6, 18, 14, 3);
+      ctx.fill();
+
+      // Head
+      ctx.fillStyle = '#fde68a';
+      ctx.beginPath();
+      ctx.arc(nx, ny - 13, 9, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Hair
+      ctx.fillStyle = (npc.id === 'npc_somchai' || npc.id === 'npc_sai') ? '#e2e8f0' : '#1e293b';
+      ctx.beginPath();
+      ctx.arc(nx, ny - 15, 9, Math.PI, 0);
+      ctx.fill();
+
+      // Name & Title Tag
+      ctx.font = '600 10px Prompt, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillText(npc.name, nx, ny + 24);
+
+      // Symptom Bubble if Sick
+      if (npc.isSick && !npc.investigated) {
+        const bubbleY = ny - 28 + Math.sin(this.waterRippleTime * 2) * 3;
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.92)';
+        ctx.beginPath();
+        ctx.arc(nx, bubbleY, 11, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.font = '12px serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(npc.getStatusBubble() || '🤒', nx, bubbleY + 4);
+      } else if (npc.investigated) {
+        ctx.font = '12px serif';
+        ctx.fillText('✅', nx, ny - 26);
+      }
+
+      ctx.restore();
+    }
   }
 
   drawMosquitoes(ctx, world, player, dt) {

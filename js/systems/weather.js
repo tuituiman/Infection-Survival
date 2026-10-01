@@ -66,7 +66,14 @@ class WeatherSystem {
         return;
       }
 
-      if (onNotify) {
+      // Check Village Dynamic Event
+      this.currentEvent = this.getEventForDay(this.day);
+      if (this.currentEvent) {
+        this.applyEventEffects(this.currentEvent, world);
+        if (onNotify) {
+          onNotify(`📢 เหตุการณ์วันนี้: ${this.currentEvent.title} - ${this.currentEvent.desc}`, 'warning');
+        }
+      } else if (onNotify) {
         onNotify(`🌅 เริ่มต้นวันที่ ${this.day} / ${this.maxDays}! รพ.สต. รีเซ็ตโควตายาประจำวันแล้ว`, 'success');
       }
     }
@@ -203,13 +210,59 @@ class WeatherSystem {
     return `${hStr}:${mStr} น.`;
   }
 
+  // Formatted string for weather status HUD
   getWeatherFormatted() {
+    let weatherStr = '';
     switch (this.weatherType) {
-      case 'clear': return '☀️ ท้องฟ้าแจ่มใส';
-      case 'hot': return '🔥 แดดร้อนจัด';
-      case 'overcast': return '⛅ เมฆครึ้ม';
-      case 'rain': return '🌧️ ฝนตกน้ำขัง';
-      default: return '☀️ อากาศปกติ';
+      case 'rain': weatherStr = '🌧️ ฝนตกหนัก'; break;
+      case 'hot': weatherStr = '☀️ แดดจัดระอุ'; break;
+      case 'overcast': weatherStr = '⛅ เมฆครึ้ม'; break;
+      default: weatherStr = '🌤️ ท้องฟ้าแจ่มใส'; break;
+    }
+    if (this.currentEvent) {
+      weatherStr += ` | ${this.currentEvent.title}`;
+    }
+    return weatherStr;
+  }
+
+  // Dynamic Outbreak Events by Day
+  getEventForDay(day) {
+    if (day === 3) {
+      return {
+        id: 'flood',
+        title: '🌧️ น้ำท่วมขังฉับพลัน (Flash Flood)',
+        desc: 'ฝนตกหนัก น้ำท่วมขังตามซอยหมู่บ้าน แอ่งน้ำเพิ่มขึ้น 2 เท่า ต้องสวมบูทป้องกันโรคฉี่หนู!'
+      };
+    }
+    if (day === 5) {
+      return {
+        id: 'fair',
+        title: '🏮 งานบุญประจำหมู่บ้าน (Village Fair)',
+        desc: 'ชาวบ้านมารวมตัวกันหนาแน่นในตลาด ระวังละอองฝอยไข้หวัดใหญ่ และระวังอาหารสุกๆ ดิบๆ!'
+      };
+    }
+    if (day === 6) {
+      return {
+        id: 'heatwave',
+        title: '☀️ คลื่นความร้อนระอุ (Severe Heatwave)',
+        desc: 'อากาศร้อนจัด สูญเสียน้ำเร็ว 2 เท่า และอาหารปรุงสุกนอกตู้กับข้าวจะบูดไวมาก!'
+      };
+    }
+    return null;
+  }
+
+  applyEventEffects(event, world) {
+    if (!event) return;
+    if (event.id === 'flood') {
+      this.weatherType = 'rain';
+      if (world && world.puddles) {
+        world.puddles.forEach(p => p.active = true);
+      }
+    } else if (event.id === 'fair') {
+      this.weatherType = 'clear';
+      if (world) world.isFairActive = true;
+    } else if (event.id === 'heatwave') {
+      this.weatherType = 'hot';
     }
   }
 }
