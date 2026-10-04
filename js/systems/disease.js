@@ -96,30 +96,33 @@ class DiseaseSystem {
     if (this.exposureTicks < 1.0) return;
     this.exposureTicks = 0;
 
+    const day = weatherSystem ? weatherSystem.day : 1;
+
     // 1. Check Puddle (Leptospirosis / ฉี่หนู)
     if (world.isInPuddle(player.x, player.y)) {
       if (!player.hasBoots) {
-        // Walking bare-footed in puddle!
+        // Walking bare-footed in puddle! (Higher chance on Day 3 or Day 6)
+        const baseLeptoChance = (day === 3 || day === 6) ? 0.42 : 0.28;
         this.evaluateRisk({
           disease: 'leptospirosis',
-          chance: 0.28,
+          chance: baseLeptoChance,
           message: 'คุณเหยียบย่ำน้ำขังด้วยเท้าเปล่า! เชื้อเลปโตสไปราจากฉี่หนูปนเปื้อนผ่านผิวหนัง...'
         }, onNotify);
       }
     }
 
     // 2. Check Mosquito Swarm Zone (Dengue / ไข้เลือดออก)
-    // Mosquitoes are especially aggressive at dawn (05:00-08:00) and dusk (16:30-19:30)
+    // Mosquitoes are especially aggressive on Day 1, Day 6, or at dawn/dusk
     const isMosquitoHour = weatherSystem && weatherSystem.isMosquitoActiveHour();
     const inMosquitoZone = world.isMosquitoZone(player.x, player.y);
 
     if (inMosquitoZone || isMosquitoHour) {
-      // If player has repellent active, repellent protects them!
       if (player.repellentHoursLeft > 0) {
-        // Safe!
+        // Safe! Repellent shield active
       } else {
         // Mosquito danger!
-        const chance = (inMosquitoZone && isMosquitoHour) ? 0.22 : 0.08;
+        let chance = (inMosquitoZone && isMosquitoHour) ? 0.24 : 0.08;
+        if (day === 1 || day === 6) chance += 0.12; // Outbreak surge
         this.evaluateRisk({
           disease: 'dengue',
           chance: chance,
@@ -131,17 +134,18 @@ class DiseaseSystem {
     // 3. Check Crowded Zone (Influenza / ไข้หวัดใหญ่)
     if (world.isCrowdedZone && world.isCrowdedZone(player.x, player.y)) {
       if (player.hasMask && player.maskHoursLeft > 0) {
-        // Mask provides 90% protection, very low chance (1.5%)
+        // Mask provides 90%+ protection
         this.evaluateRisk({
           disease: 'influenza',
           chance: 0.015,
           message: 'แม้สวมหน้ากาก แต่ละอองฝอยหนาแน่นมาก เชื้อไข้หวัดใหญ่เล็ดลอดเข้ามา...'
         }, onNotify);
       } else {
-        // Unprotected in crowded area!
+        // Unprotected in crowded area! (Surges on Day 5 fair & Day 6 crisis)
+        const fluChance = (day === 5 || day === 6) ? 0.28 : 0.15;
         this.evaluateRisk({
           disease: 'influenza',
-          chance: 0.15,
+          chance: fluChance,
           message: 'คุณอยู่ในพื้นที่ชุมชนแออัดโดยไม่สวมหน้ากาก! สูดละอองฝอยติดเชื้อไวรัสไข้หวัดใหญ่...'
         }, onNotify);
       }

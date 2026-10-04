@@ -52,6 +52,11 @@ class GameRenderer {
     }
   }
 
+  // Screen pixel -> world pixel (used by mouse hold-to-move)
+  screenToGround(sx, sy) {
+    return { x: sx + this.camera.x, y: sy + this.camera.y };
+  }
+
   render(world, player, weatherSystem, diseaseSystem, nearbyEntity, dt) {
     const ctx = this.ctx;
     ctx.clearRect(0, 0, this.width, this.height);

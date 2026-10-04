@@ -169,7 +169,7 @@ class GameWorld {
         options: [
           {
             id: 'cook_pork',
-            label: 'ย่างเนื้อหมูให้สุก 100% (ต้องการ: เนื้อหมูดิบ)',
+            label: 'ย่างเนื้อหมูให้สุก 100% 🎮 [มินิเกม]',
             icon: '🍖',
             requiresItem: 'raw_pork',
             producesItem: 'cooked_pork',
@@ -177,7 +177,7 @@ class GameWorld {
           },
           {
             id: 'boil_water',
-            label: 'ต้มน้ำดิบให้เดือดสนิท (ต้องการ: น้ำดิบ)',
+            label: 'ต้มน้ำดิบให้เดือดสนิท 🎮 [มินิเกม]',
             icon: '🍵',
             requiresItem: 'raw_water',
             producesItem: 'boiled_water',
@@ -198,7 +198,7 @@ class GameWorld {
         options: [
           {
             id: 'wash_hands',
-            label: 'ล้างมือด้วยสบู่และน้ำสะอาด (ฟื้นฟูสุขอนามัย)',
+            label: 'ล้างมือด้วยสบู่ 7 ขั้นตอน 🎮 [มินิเกม]',
             icon: '✨',
             action: 'wash_hands'
           }
@@ -267,7 +267,7 @@ class GameWorld {
         options: [
           {
             id: 'flip_shells',
-            label: 'คว่ำกะลาและเก็บขยะน้ำขังทำลายทิ้ง',
+            label: 'คว่ำกะลาและตบยุงลาย 🎮 [มินิเกม]',
             icon: '🧹',
             action: 'flip_shells'
           }

@@ -10,6 +10,15 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
+  <!-- Three.js (CDN, no build step) -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+      }
+    }
+  </script>
 </head>
 <body>
   <div id="game-container">
@@ -22,80 +31,29 @@
     <div id="vignette-danger" class="screen-fx"></div>
     <div id="tinnitus-flash" class="screen-fx"></div>
 
-    <!-- Top HUD: Day/Time, Weather, Survival Stats, Diseases, Actions -->
+    <!-- Top HUD: Time Capsule (Left) & Actions Bar (Right) -->
     <header id="top-hud">
-      <div class="hud-card time-card">
-        <div class="day-badge" id="hud-day">วันที่ 1 / 7</div>
+      <div class="hud-card time-card" id="time-card">
+        <div class="day-badge" id="hud-day" title="คลิกเพื่อดูสรุปภารกิจประจำวัน">วันที่ 1 / 7</div>
         <div class="clock-display" id="hud-time">07:00 น.</div>
         <div class="weather-badge" id="hud-weather">☀️ แดดจัด</div>
-      </div>
-
-      <!-- Horizontal Stats HUD: Player Survival Needs & Equipment -->
-      <div id="stats-hud" class="hud-card">
-        <div class="stat-row">
-          <div class="stat-label">
-            <span class="stat-icon">❤️</span>
-            <span class="stat-name">HP</span>
-            <span class="stat-val" id="val-hp">100/100</span>
-          </div>
-          <div class="progress-bar-wrap">
-            <div class="progress-bar hp-bar" id="bar-hp" style="width: 100%;"></div>
-          </div>
-        </div>
-
-        <div class="stat-row">
-          <div class="stat-label">
-            <span class="stat-icon">🍗</span>
-            <span class="stat-name">หิว</span>
-            <span class="stat-val" id="val-hunger">100%</span>
-          </div>
-          <div class="progress-bar-wrap">
-            <div class="progress-bar hunger-bar" id="bar-hunger" style="width: 100%;"></div>
-          </div>
-        </div>
-
-        <div class="stat-row">
-          <div class="stat-label">
-            <span class="stat-icon">💧</span>
-            <span class="stat-name">น้ำ</span>
-            <span class="stat-val" id="val-thirst">100%</span>
-          </div>
-          <div class="progress-bar-wrap">
-            <div class="progress-bar thirst-bar" id="bar-thirst" style="width: 100%;"></div>
-          </div>
-        </div>
-
-        <div class="stat-row">
-          <div class="stat-label">
-            <span class="stat-icon">⚡</span>
-            <span class="stat-name">พลัง</span>
-            <span class="stat-val" id="val-energy">100%</span>
-          </div>
-          <div class="progress-bar-wrap">
-            <div class="progress-bar energy-bar" id="bar-energy" style="width: 100%;"></div>
-          </div>
-        </div>
-
-        <!-- Equipment & Buffs -->
-        <div id="equipment-badges">
-          <div class="equip-badge" id="badge-boots" title="รองเท้าบูทยาง (ป้องกันฉี่หนู)">
-            👢 <span>ไม่มีบูท</span>
-          </div>
-          <div class="equip-badge" id="badge-repellent" title="ยากันยุง (ป้องกันไข้เลือดออก)">
-            🧴 <span>ไม่มียากันยุง</span>
-          </div>
-          <div class="equip-badge" id="badge-mask" title="หน้ากากอนามัย (ป้องกันไข้หวัดใหญ่)">
-            😷 <span>ไม่มีหน้ากาก</span>
-          </div>
+        <div class="star-badge" id="hud-stars" title="ดาวอนามัยสะสม (ทำภารกิจและมินิเกม)">
+          ⭐ <span id="val-stars">0</span>
         </div>
       </div>
 
-      <!-- Right HUD Group: Active Diseases & Action Buttons -->
+      <!-- Right HUD Group: Action Buttons -->
       <div class="top-hud-right">
-        <!-- Disease Status Indicators (Active Infections) -->
-        <div id="active-diseases-container"></div>
-
         <div class="hud-card hud-actions">
+          <button id="btn-cert" class="hud-btn" title="เกียรติบัตรฮีโร่ อสม. น้อย">
+            🎓 <span class="btn-text">เกียรติบัตร</span>
+          </button>
+          <button id="btn-minigames-hub" class="hud-btn highlight-gold" title="ศูนย์มินิเกมฝึกทักษะสุขภาพ">
+            🎮 <span class="btn-text">มินิเกม</span>
+          </button>
+          <button id="btn-briefing" class="hud-btn" title="ประกาศเตือนภัยสุขภาพประจำวัน">
+            📰 <span class="btn-text">สรุปรายวัน</span>
+          </button>
           <button id="btn-quests" class="hud-btn" title="ภารกิจ อสม. ประจำวัน">
             📋 <span class="btn-text">ภารกิจ อสม.</span> <span id="badge-quest-count" class="badge-count">2</span>
           </button>
@@ -111,6 +69,102 @@
         </div>
       </div>
     </header>
+
+    <!-- Side Status Bar Widget (Character Profile, Survival Needs & Equipment) -->
+    <aside id="vitals-sidebar" class="vitals-panel">
+      <!-- Header: Avatar, Name, Health Status, Quick Chips & Collapse Toggle -->
+      <div class="vitals-header" id="vitals-header">
+        <div class="vitals-avatar-wrap">
+          <div class="vitals-avatar" id="vitals-avatar-icon">🧑‍⚕️</div>
+          <div class="vitals-pulse-ring" id="vitals-pulse-ring"></div>
+        </div>
+        <div class="vitals-profile-info">
+          <div class="vitals-profile-top">
+            <span class="vitals-role">อสม. ประจำชุมชน</span>
+            <span class="vitals-mobile-hint">แตะเพื่อขยาย ▾</span>
+          </div>
+          <div class="vitals-health-status" id="vitals-health-status">
+            <span class="status-dot"></span>
+            <span id="vitals-status-text">สุขภาพสมบูรณ์</span>
+          </div>
+        </div>
+        <!-- Quick vitals chips (always visible on mobile / collapsed) -->
+        <div class="vitals-quick-row" id="vitals-quick-row">
+          <span class="quick-chip hp" id="quick-hp" title="HP">❤️ 100</span>
+          <span class="quick-chip hunger" id="quick-hunger" title="อาหาร">🍗 100%</span>
+          <span class="quick-chip thirst" id="quick-thirst" title="น้ำ">💧 100%</span>
+          <span class="quick-chip energy" id="quick-energy" title="พลังงาน">⚡ 100%</span>
+        </div>
+        <button id="btn-toggle-vitals" class="vitals-collapse-btn" title="ย่อ/ขยายแถบสถานะ">
+          ◀
+        </button>
+      </div>
+
+      <!-- Vitals Body -->
+      <div class="vitals-body" id="vitals-body">
+        <!-- 4 Vital Progress Bars -->
+        <div class="vital-item" data-vital="hp">
+          <div class="vital-label">
+            <span class="vital-icon">❤️</span>
+            <span class="vital-name">พลังชีวิต (HP)</span>
+            <span class="vital-val" id="val-hp">100/100</span>
+          </div>
+          <div class="vital-bar-wrap">
+            <div class="vital-bar hp-bar" id="bar-hp" style="width: 100%;"></div>
+          </div>
+        </div>
+
+        <div class="vital-item" data-vital="hunger">
+          <div class="vital-label">
+            <span class="vital-icon">🍗</span>
+            <span class="vital-name">ความหิว (Hunger)</span>
+            <span class="vital-val" id="val-hunger">100%</span>
+          </div>
+          <div class="vital-bar-wrap">
+            <div class="vital-bar hunger-bar" id="bar-hunger" style="width: 100%;"></div>
+          </div>
+        </div>
+
+        <div class="vital-item" data-vital="thirst">
+          <div class="vital-label">
+            <span class="vital-icon">💧</span>
+            <span class="vital-name">น้ำในร่างกาย (Thirst)</span>
+            <span class="vital-val" id="val-thirst">100%</span>
+          </div>
+          <div class="vital-bar-wrap">
+            <div class="vital-bar thirst-bar" id="bar-thirst" style="width: 100%;"></div>
+          </div>
+        </div>
+
+        <div class="vital-item" data-vital="energy">
+          <div class="vital-label">
+            <span class="vital-icon">⚡</span>
+            <span class="vital-name">พลังงาน (Energy)</span>
+            <span class="vital-val" id="val-energy">100%</span>
+          </div>
+          <div class="vital-bar-wrap">
+            <div class="vital-bar energy-bar" id="bar-energy" style="width: 100%;"></div>
+          </div>
+        </div>
+
+        <!-- Equipment / Protective Gear Badges -->
+        <div class="vitals-section-subtitle">🛡️ อุปกรณ์ป้องกัน:</div>
+        <div id="equipment-badges" class="equipment-grid">
+          <div class="equip-badge" id="badge-boots" title="รองเท้าบูทยาง (ป้องกันฉี่หนู)">
+            👢 <span>ไม่มีบูท (เสี่ยงฉี่หนู)</span>
+          </div>
+          <div class="equip-badge" id="badge-repellent" title="ยากันยุง (ป้องกันไข้เลือดออก)">
+            🧴 <span>ไม่มียากันยุง</span>
+          </div>
+          <div class="equip-badge" id="badge-mask" title="หน้ากากอนามัย (ป้องกันไข้หวัดใหญ่)">
+            😷 <span>ไม่มีหน้ากาก</span>
+          </div>
+        </div>
+
+        <!-- Active Diseases List inside Sidebar -->
+        <div id="active-diseases-container" class="sidebar-diseases"></div>
+      </div>
+    </aside>
 
     <!-- In-World Context Interaction Prompt -->
     <div id="interaction-prompt" class="hidden">
@@ -213,13 +267,20 @@
     <div id="screen-game-over" class="modal-overlay hidden">
       <div class="modal-dialog glass-panel end-panel danger">
         <div class="end-icon">💀</div>
-        <h1 class="end-title">คุณเสียชีวิต</h1>
+        <h1 class="end-title">คุณหมดสติ / สุขภาพทรุดโทรม</h1>
         <p id="game-over-cause" class="end-cause">สาเหตุ: สุขภาพทรุดโทรมจากการติดเชื้อ</p>
         <div id="game-over-lesson" class="lesson-box">
           <!-- Lesson on what went wrong and medical advice -->
         </div>
         <div class="end-stats" id="game-over-stats"></div>
-        <button id="btn-restart-game" class="btn-primary-action">เริ่มใหม่อีกครั้ง</button>
+        <div style="display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 340px;">
+          <button id="btn-ambulance-revive" class="btn-primary-action pulse-anim" style="background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);">
+            🚑 เรียกรถพยาบาล 1669 มาช่วย (ลุยต่อ)
+          </button>
+          <button id="btn-restart-game" class="btn btn-secondary" style="border-radius: 30px; padding: 10px 20px;">
+            🔄 เริ่มใหม่อีกครั้งจากวันที่ 1
+          </button>
+        </div>
       </div>
     </div>
 
@@ -230,7 +291,27 @@
         <h1 class="end-title">คุณรอดชีวิตครบ 7 วัน!</h1>
         <p class="end-cause">ยินดีด้วย! คุณมีสุขอนามัยที่ดีเยี่ยมและป้องกันตนเองจากโรคระบาดได้อย่างปลอดภัย</p>
         <div class="end-stats" id="victory-stats"></div>
-        <button id="btn-play-again" class="btn-primary-action">เล่นอีกรอบเพื่อทำสถิติ</button>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 10px;">
+          <button id="btn-view-cert-victory" class="btn-primary-action pulse-anim" style="background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 4px 16px rgba(245, 158, 11, 0.4);">
+            🎓 ดูและบันทึกเกียรติบัตรส่งครู
+          </button>
+          <button id="btn-play-again" class="btn btn-secondary" style="border-radius: 30px; padding: 12px 24px;">
+            เล่นอีกรอบเพื่อทำสถิติ
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Daily Public Health Briefing Modal (7-Day Outbreak Curriculum) -->
+    <div id="modal-briefing" class="modal-overlay hidden">
+      <div class="modal-dialog glass-panel briefing-modal-content">
+        <div class="modal-header">
+          <h2 id="briefing-header-title">🌅 ประกาศเตือนภัยสุขภาพประจำวัน</h2>
+          <button class="btn-close-modal" id="btn-close-briefing">&times;</button>
+        </div>
+        <div class="modal-body" id="briefing-modal-body">
+          <!-- Dynamically filled by JS -->
+        </div>
       </div>
     </div>
 
@@ -299,6 +380,136 @@
       </div>
     </div>
 
+    <!-- Modal: Mini-Games Hub (ศูนย์รวมมินิเกมฝึกทักษะ) -->
+    <div id="modal-minigames-hub" class="modal-overlay hidden">
+      <div class="modal-dialog glass-panel" style="max-width: 560px;">
+        <div class="modal-header">
+          <h2>🎮 ศูนย์ฝึกทักษะมินิเกม อสม.</h2>
+          <button class="btn-close-modal" id="btn-close-minigames-hub">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 14px;">
+            ฝึกทักษะการป้องกันโรคผ่านมินิเกมสั้น 3-5 วินาที เล่นสนุก ได้ความรู้ และสะสม <strong>⭐ ดาวอนามัย</strong> สำหรับพิมพ์เกียรติบัตร!
+          </p>
+          <div class="minigames-hub-grid">
+            <div class="minigame-hub-card" id="hub-game-mosquito">
+              <div class="hub-icon">🦟</div>
+              <div class="hub-info">
+                <h4>1. มินิเกมตบยุงลาย (ไข้เลือดออก)</h4>
+                <p>แตะตบยุงลายรอบแอ่งน้ำขังให้ทันเวลา ก่อนที่ยุงจะแพร่เชื้อ</p>
+                <span class="hub-reward">⭐ สูงสุด +30 ดาว</span>
+              </div>
+              <button class="btn btn-primary-action btn-sm">เริ่มเล่น</button>
+            </div>
+
+            <div class="minigame-hub-card" id="hub-game-wash">
+              <div class="hub-icon">🧼</div>
+              <div class="hub-info">
+                <h4>2. มินิเกมฟอกสบู่ 7 ขั้นตอน</h4>
+                <p>แตะหรือลากผ่านฟองสบู่ให้แตกครบ 7 จุด เพื่อมือสะอาดปลอดเชื้อ</p>
+                <span class="hub-reward">⭐ สูงสุด +25 ดาว</span>
+              </div>
+              <button class="btn btn-primary-action btn-sm">เริ่มเล่น</button>
+            </div>
+
+            <div class="minigame-hub-card" id="hub-game-cook">
+              <div class="hub-icon">🥩</div>
+              <div class="hub-info">
+                <h4>3. มินิเกมกะจังหวะย่างสุก 100%</h4>
+                <p>กดหยุดความร้อนให้อยู่ในโซนสีเขียว ปลอดภัยจากไข้หูดับ</p>
+                <span class="hub-reward">⭐ สูงสุด +30 ดาว</span>
+              </div>
+              <button class="btn btn-primary-action btn-sm">เริ่มเล่น</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Interactive Touch Micro Mini-Games -->
+    <div id="modal-minigame" class="modal-overlay hidden">
+      <div class="modal-dialog glass-panel minigame-dialog">
+        <div id="minigame-container">
+          <!-- Rendered dynamically by MiniGameManager -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Student Health Certificate (เกียรติบัตร อสม. น้อย) -->
+    <div id="modal-certificate" class="modal-overlay hidden">
+      <div class="modal-dialog glass-panel certificate-modal-content">
+        <div class="modal-header">
+          <h2>🎓 เกียรติบัตรฮีโร่ อสม. น้อยประจำชุมชน</h2>
+          <button class="btn-close-modal" id="btn-close-cert">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="cert-card" id="cert-card-print">
+            <div class="cert-border-decor"></div>
+            <div class="cert-header">
+              <div class="cert-emblem">🏥</div>
+              <div class="cert-org-text">
+                <h3>กระทรวงสาธารณสุขจำลอง & สถาบันสุขศึกษาชุมชน</h3>
+                <p>ขอเชิดชูเกียรติประวัติเยาวชนผู้พิทักษ์สุขภาพ</p>
+              </div>
+            </div>
+            <div class="cert-title">เกียรติบัตร อสม. น้อยดีเด่น</div>
+            <p class="cert-text-intro">ขอมอบเกียรติบัตรฉบับนี้ให้ไว้เพื่อแสดงว่า</p>
+            
+            <div class="cert-name-row">
+              <input type="text" id="cert-student-name" class="cert-name-input" value="ด.ช. อสม. น้อย ผู้กล้าหาญ" placeholder="พิมพ์ชื่อ-นามสกุลของคุณ" title="คลิกเพื่อแก้ไขชื่อของคุณ">
+            </div>
+            <div class="cert-school-row">
+              <input type="text" id="cert-school-name" class="cert-school-input" value="โรงเรียนชุมชนบ้านสุขภาพดี" placeholder="พิมพ์ชื่อโรงเรียนของคุณ" title="คลิกเพื่อแก้ไขชื่อโรงเรียน">
+            </div>
+
+            <p class="cert-achievement">
+              ได้ปฏิบัติหน้าที่ อสม. เยาวชน ป้องกัน คว่ำกะลา ต้มน้ำสุก ปรุงสุก และเอาชีวิตรอดจากโรคติดต่อในชุมชนสำเร็จ
+            </p>
+
+            <div class="cert-stats-grid">
+              <div class="cert-stat-box">
+                <span class="cert-stat-label">เกรดผลงาน</span>
+                <span class="cert-grade" id="cert-grade-val">A+</span>
+              </div>
+              <div class="cert-stat-box">
+                <span class="cert-stat-label">ดาวอนามัยสะสม</span>
+                <span class="cert-stat-val" id="cert-stars-val">⭐ 180</span>
+              </div>
+              <div class="cert-stat-box">
+                <span class="cert-stat-label">รอดชีวิต</span>
+                <span class="cert-stat-val" id="cert-days-val">7 วัน</span>
+              </div>
+              <div class="cert-stat-box">
+                <span class="cert-stat-label">ฉายาเกียรติยศ</span>
+                <span class="cert-stat-val" id="cert-title-val">มือปราบยุงลายระดับทอง</span>
+              </div>
+            </div>
+
+            <div class="cert-footer">
+              <div class="cert-sign">
+                <div class="sign-line"></div>
+                <span>คุณหมอประจำ รพ.สต.</span>
+              </div>
+              <div class="cert-seal">🎖️ ตราประทับ อสม.</div>
+              <div class="cert-sign">
+                <div class="sign-line"></div>
+                <span>ครูผู้สอนสุขศึกษา</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="cert-actions-bar">
+            <button id="btn-print-cert" class="btn btn-primary-action">
+              📸 บันทึก / ปริ้นต์เกียรติบัตรส่งครู
+            </button>
+            <button id="btn-close-cert-2" class="btn btn-secondary">
+              ปิดหน้าต่าง
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Welcome / Start Overlay -->
     <div id="screen-welcome" class="modal-overlay">
       <div class="modal-dialog glass-panel welcome-panel">
@@ -341,6 +552,9 @@
     </div>
   </div>
 
+  <!-- Floating FX Container for Stars & Pop Feedback -->
+  <div id="floating-fx-container"></div>
+
   <!-- Sleep Transition Fade Overlay -->
   <div id="sleep-overlay" class="sleep-overlay">
     <div class="sleep-modal-content">
@@ -351,18 +565,20 @@
   </div>
 
   <!-- Game Scripts (Modular Architecture) -->
-  <script src="js/audio.js"></script>
-  <script src="js/data/diseases.js"></script>
-  <script src="js/data/items.js"></script>
-  <script src="js/engine/input.js"></script>
-  <script src="js/entities/npc.js"></script>
-  <script src="js/systems/quests.js"></script>
-  <script src="js/engine/world.js"></script>
-  <script src="js/entities/player.js"></script>
-  <script src="js/systems/survival.js"></script>
-  <script src="js/systems/disease.js"></script>
-  <script src="js/systems/weather.js"></script>
-  <script src="js/engine/renderer.js"></script>
-  <script src="js/main.js"></script>
+  <script src="js/audio.js?v=2"></script>
+  <script src="js/data/diseases.js?v=2"></script>
+  <script src="js/data/items.js?v=2"></script>
+  <script src="js/engine/input.js?v=2"></script>
+  <script src="js/entities/npc.js?v=2"></script>
+  <script src="js/systems/quests.js?v=2"></script>
+  <script src="js/systems/minigames.js?v=2"></script>
+  <script src="js/engine/world.js?v=2"></script>
+  <script src="js/entities/player.js?v=2"></script>
+  <script src="js/systems/survival.js?v=2"></script>
+  <script src="js/systems/disease.js?v=2"></script>
+  <script src="js/systems/weather.js?v=2"></script>
+  <script src="js/engine/renderer.js?v=2"></script>
+  <script type="module" src="js/engine/renderer3d.js?v=2"></script>
+  <script src="js/main.js?v=2"></script>
 </body>
 </html>

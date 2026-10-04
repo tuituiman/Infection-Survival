@@ -320,6 +320,94 @@ class SoundManager {
       }
     } catch (e) {}
   }
+
+  // --- Playful Student FX: Bubble Pop ---
+  playPop() {
+    if (!this.enabled || !this.initialized) return;
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(400 + Math.random() * 200, now);
+      osc.frequency.exponentialRampToValueAtTime(800 + Math.random() * 200, now + 0.08);
+
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(now);
+      osc.stop(now + 0.08);
+    } catch (e) {}
+  }
+
+  // --- Mosquito Swat / Splat ---
+  playSplat() {
+    if (!this.enabled || !this.initialized) return;
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(320, now);
+      osc.frequency.exponentialRampToValueAtTime(60, now + 0.1);
+
+      gain.gain.setValueAtTime(0.35, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(now);
+      osc.stop(now + 0.1);
+    } catch (e) {}
+  }
+
+  // --- Sparkling Star Chime ---
+  playStarChime() {
+    if (!this.enabled || !this.initialized) return;
+    try {
+      const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6 arpeggio
+      notes.forEach((freq, idx) => {
+        const now = this.ctx.currentTime + idx * 0.06;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now);
+
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+        osc.start(now);
+        osc.stop(now + 0.22);
+      });
+    } catch (e) {}
+  }
+
+  // --- 1669 Ambulance Emergency Siren ---
+  playAmbulance() {
+    if (!this.enabled || !this.initialized) return;
+    try {
+      const pitches = [750, 950, 750, 950];
+      pitches.forEach((freq, idx) => {
+        const now = this.ctx.currentTime + idx * 0.18;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now);
+
+        gain.gain.setValueAtTime(0.28, now);
+        gain.gain.exponentialRampToValueAtTime(0.02, now + 0.17);
+
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+        osc.start(now);
+        osc.stop(now + 0.17);
+      });
+    } catch (e) {}
+  }
 }
 
 // Global Sound Instance

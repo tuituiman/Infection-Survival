@@ -225,44 +225,75 @@ class WeatherSystem {
     return weatherStr;
   }
 
-  // Dynamic Outbreak Events by Day
+  // Dynamic Outbreak Events by Day matching 7-Day Curriculum
   getEventForDay(day) {
-    if (day === 3) {
-      return {
-        id: 'flood',
-        title: '🌧️ น้ำท่วมขังฉับพลัน (Flash Flood)',
-        desc: 'ฝนตกหนัก น้ำท่วมขังตามซอยหมู่บ้าน แอ่งน้ำเพิ่มขึ้น 2 เท่า ต้องสวมบูทป้องกันโรคฉี่หนู!'
-      };
+    switch (day) {
+      case 1:
+        return {
+          id: 'mosquito_season',
+          weather: 'clear',
+          title: '🦟 แหล่งเพาะพันธุ์ยุงลาย (Aedes Mosquito Alert)',
+          desc: 'ยุงลายออกหากินชุกชุมช่วงเช้าและพลบค่ำ ระวังถูกกัดในที่รกและห้ามกินยาแอสไพริน!'
+        };
+      case 2:
+        return {
+          id: 'heatwave',
+          weather: 'hot',
+          title: '☀️ แดดจัดระอุ (Severe Heatwave & Diarrhea)',
+          desc: 'อากาศร้อนจัด อาหารบูดเสียง่ายกว่าปกติ และเชื้อโรคเจริญเติบโตในน้ำดิบ ดื่มเฉพาะน้ำต้มสุก!'
+        };
+      case 3:
+        return {
+          id: 'flood',
+          weather: 'rain',
+          title: '🌧️ พายุฝนน้ำท่วมขัง (Flash Flood & Leptospirosis)',
+          desc: 'ฝนตกหนัก น้ำท่วมขังตามซอยหมู่บ้าน ห้ามเดินลุยน้ำเท้าเปล่า ต้องสวมรองเท้าบูทยาง!'
+        };
+      case 4:
+        return {
+          id: 'meat_festival',
+          weather: 'overcast',
+          title: '🥩 เขียงหมูสด & เตือนภัยไข้หูดับ (Streptococcus suis)',
+          desc: 'ตลาดจำหน่ายเนื้อหมูสด ระวังการรับประทานลาบดิบและต้องย่างสุก 100% แยกตะเกียบคีบ!'
+        };
+      case 5:
+        return {
+          id: 'fair',
+          weather: 'clear',
+          title: '😷 ตลาดนัดชุมชนแออัด (Crowded Market & Influenza)',
+          desc: 'ชาวบ้านมารวมตัวกันหนาแน่นในตลาด ระวังละอองฝอยทางเดินหายใจ ต้องสวมหน้ากากอนามัย!'
+        };
+      case 6:
+        return {
+          id: 'crisis',
+          weather: 'rain',
+          title: '⚠️ วิกฤตโรคระบาดผสม (Multiple Outbreak Crisis)',
+          desc: 'สภาพอากาศแปรปรวน ชาวบ้านล้มป่วยหลายคน โควตาเวชภัณฑ์จำกัด ตรวจวินิจฉัยและรักษาให้ถูกโรค!'
+        };
+      case 7:
+        return {
+          id: 'evaluation',
+          weather: 'clear',
+          title: '🏆 วันประเมินผลสุขาภิบาลชุมชน (Community Health Evaluation)',
+          desc: 'วันสุดท้ายแห่งการประเมินผลงาน อสม. ดูแลสุขภาพให้สมบูรณ์และรับเหรียญเกียรติยศที่ รพ.สต.!'
+        };
+      default:
+        return null;
     }
-    if (day === 5) {
-      return {
-        id: 'fair',
-        title: '🏮 งานบุญประจำหมู่บ้าน (Village Fair)',
-        desc: 'ชาวบ้านมารวมตัวกันหนาแน่นในตลาด ระวังละอองฝอยไข้หวัดใหญ่ และระวังอาหารสุกๆ ดิบๆ!'
-      };
-    }
-    if (day === 6) {
-      return {
-        id: 'heatwave',
-        title: '☀️ คลื่นความร้อนระอุ (Severe Heatwave)',
-        desc: 'อากาศร้อนจัด สูญเสียน้ำเร็ว 2 เท่า และอาหารปรุงสุกนอกตู้กับข้าวจะบูดไวมาก!'
-      };
-    }
-    return null;
   }
 
   applyEventEffects(event, world) {
     if (!event) return;
-    if (event.id === 'flood') {
-      this.weatherType = 'rain';
+    if (event.weather) {
+      this.weatherType = event.weather;
+    }
+    if (event.id === 'flood' || event.id === 'crisis') {
       if (world && world.puddles) {
         world.puddles.forEach(p => p.active = true);
       }
-    } else if (event.id === 'fair') {
-      this.weatherType = 'clear';
+    }
+    if (event.id === 'fair') {
       if (world) world.isFairActive = true;
-    } else if (event.id === 'heatwave') {
-      this.weatherType = 'hot';
     }
   }
 }

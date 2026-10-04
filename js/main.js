@@ -13,7 +13,16 @@ class Game {
     this.weather = new WeatherSystem();
     this.quests = new QuestSystem();
     this.input = window.inputController;
-    this.renderer = new GameRenderer(this.canvas);
+    this.renderer = null;
+    if (window.GameRenderer3D) {
+      try {
+        this.renderer = new window.GameRenderer3D(this.canvas);
+      } catch (err) {
+        console.warn('3D renderer unavailable, falling back to 2D:', err);
+      }
+    }
+    if (!this.renderer) this.renderer = new GameRenderer(this.canvas);
+    this.input.attach(this.renderer, this.player);
 
     this.isPaused = false;
     this.isSleeping = false;
@@ -22,12 +31,80 @@ class Game {
     this.currentNearbyEntity = null;
     this.lastTrackedDay = this.weather.day;
 
+    // Student Gamification: Stars & Touch Micro Mini-Games
+    this.stars = parseInt(localStorage.getItem('outbreak_stars') || '50', 10);
+    this.miniGames = new window.MiniGameManager(this);
+
     this.initUI();
     this.initCodex();
     this.updateInventoryUI();
   }
 
   initUI() {
+    // Star & Certificate Controls
+    const starEl = document.getElementById('val-stars');
+    if (starEl) starEl.textContent = this.stars;
+
+    const btnCert = document.getElementById('btn-cert');
+    if (btnCert) {
+      btnCert.addEventListener('click', () => {
+        this.openCertificate();
+      });
+    }
+
+    const btnCloseCert = document.getElementById('btn-close-cert');
+    if (btnCloseCert) {
+      btnCloseCert.addEventListener('click', () => {
+        this.closeModal('modal-certificate');
+      });
+    }
+
+    const btnCloseCert2 = document.getElementById('btn-close-cert-2');
+    if (btnCloseCert2) {
+      btnCloseCert2.addEventListener('click', () => {
+        this.closeModal('modal-certificate');
+      });
+    }
+
+    const btnPrintCert = document.getElementById('btn-print-cert');
+    if (btnPrintCert) {
+      btnPrintCert.addEventListener('click', () => {
+        if (window.soundManager) window.soundManager.playStarChime();
+        this.showToast('📸 กำลังเปิดระบบบันทึก / พิมพ์เกียรติบัตรเพื่อส่งการบ้าน...', 'success');
+        setTimeout(() => {
+          window.print();
+        }, 300);
+      });
+    }
+
+    const btnViewCertVictory = document.getElementById('btn-view-cert-victory');
+    if (btnViewCertVictory) {
+      btnViewCertVictory.addEventListener('click', () => {
+        this.closeModal('screen-victory');
+        this.openCertificate();
+      });
+    }
+
+    // 1669 Ambulance Emergency Revive
+    const btnAmbulanceRevive = document.getElementById('btn-ambulance-revive');
+    if (btnAmbulanceRevive) {
+      btnAmbulanceRevive.addEventListener('click', () => {
+        this.survival.isDead = false;
+        this.survival.hp = 60;
+        this.survival.hunger = Math.max(50, this.survival.hunger);
+        this.survival.thirst = Math.max(50, this.survival.thirst);
+        this.survival.energy = Math.max(50, this.survival.energy);
+        this.disease.cureAll();
+        this.closeModal('screen-game-over');
+        this.isPaused = false;
+        if (window.soundManager && typeof window.soundManager.playAmbulance === 'function') {
+          window.soundManager.playAmbulance();
+        }
+        this.showToast('🚑 รถพยาบาล 1669 ปฐมพยาบาลสำเร็จ! สุขภาพฟื้นฟู 60% ลุยภารกิจต่อได้!', 'success');
+        this.spawnFloatingEffect(window.innerWidth / 2, window.innerHeight / 2, '🚑 1669 ช่วยชีวิต!');
+      });
+    }
+
     // Top bar buttons
     document.getElementById('btn-sound').addEventListener('click', () => {
       const enabled = window.soundManager.toggleSound();
@@ -54,6 +131,57 @@ class Game {
     document.getElementById('btn-close-interact').addEventListener('click', () => {
       this.closeModal('modal-interaction');
     });
+
+    // Mini-Games Hub Controls
+    const btnMinigamesHub = document.getElementById('btn-minigames-hub');
+    if (btnMinigamesHub) {
+      btnMinigamesHub.addEventListener('click', () => {
+        this.openModal('modal-minigames-hub');
+      });
+    }
+
+    const btnCloseMinigamesHub = document.getElementById('btn-close-minigames-hub');
+    if (btnCloseMinigamesHub) {
+      btnCloseMinigamesHub.addEventListener('click', () => {
+        this.closeModal('modal-minigames-hub');
+      });
+    }
+
+    // Mini-Games Hub Cards direct launch
+    const hubMosquito = document.getElementById('hub-game-mosquito');
+    if (hubMosquito) {
+      hubMosquito.addEventListener('click', () => {
+        this.closeModal('modal-minigames-hub');
+        this.miniGames.playMosquitoSwat(() => {
+          this.showToast('ฝึกฝนตบยุงลายสำเร็จ! (+⭐ ดาวอนามัย)', 'success');
+        });
+      });
+    }
+
+    const hubWash = document.getElementById('hub-game-wash');
+    if (hubWash) {
+      hubWash.addEventListener('click', () => {
+        this.closeModal('modal-minigames-hub');
+        this.miniGames.playHandWash(() => {
+          this.survival.washHands();
+          this.showToast('ล้างมือ 7 ขั้นตอนสะอาดหมดจด สุขอนามัยเต็ม 100%! (+⭐ ดาวอนามัย)', 'success');
+        });
+      });
+    }
+
+    const hubCook = document.getElementById('hub-game-cook');
+    if (hubCook) {
+      hubCook.addEventListener('click', () => {
+        this.closeModal('modal-minigames-hub');
+        this.miniGames.playCookingTiming('เนื้อหมู', (isCooked) => {
+          if (isCooked) {
+            this.showToast('ฝึกย่างหมูสุก 100% ปลอดภัยจากไข้หูดับ! (+⭐ ดาวอนามัย)', 'success');
+          } else {
+            this.showToast('หมูยังไม่สุกดี ต้องกะจังหวะให้หยุดในแถบสีเขียวนะ', 'warning');
+          }
+        });
+      });
+    }
 
     // Quests & Investigation & Cupboard Modal Controls
     const btnQuests = document.getElementById('btn-quests');
@@ -84,15 +212,93 @@ class Game {
       });
     }
 
+    // Briefing Controls
+    const btnBriefing = document.getElementById('btn-briefing');
+    if (btnBriefing) {
+      btnBriefing.addEventListener('click', () => {
+        this.openDailyBriefing(this.weather.day);
+      });
+    }
+
+    const hudDay = document.getElementById('hud-day');
+    if (hudDay) {
+      hudDay.style.cursor = 'pointer';
+      hudDay.title = 'คลิกเพื่อดูสรุปภารกิจและคำเตือนสุขภาพประจำวัน';
+      hudDay.addEventListener('click', () => {
+        this.openDailyBriefing(this.weather.day);
+      });
+    }
+
+    const btnCloseBriefing = document.getElementById('btn-close-briefing');
+    if (btnCloseBriefing) {
+      btnCloseBriefing.addEventListener('click', () => {
+        this.closeModal('modal-briefing');
+      });
+    }
+
+    // Vitals Sidebar Toggle (Desktop Collapse & Mobile Island Expand)
+    const vitalsSidebar = document.getElementById('vitals-sidebar');
+    const btnToggleVitals = document.getElementById('btn-toggle-vitals');
+    const vitalsHeader = document.getElementById('vitals-header');
+
+    if (btnToggleVitals && vitalsSidebar) {
+      btnToggleVitals.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isMobile = window.innerWidth <= 768;
+        if (isMobile) {
+          vitalsSidebar.classList.toggle('mobile-expanded');
+          const hint = vitalsSidebar.querySelector('.vitals-mobile-hint');
+          if (hint) {
+            hint.textContent = vitalsSidebar.classList.contains('mobile-expanded') ? 'แตะเพื่อย่อ ▴' : 'แตะเพื่อขยาย ▾';
+          }
+        } else {
+          vitalsSidebar.classList.toggle('collapsed');
+          btnToggleVitals.textContent = vitalsSidebar.classList.contains('collapsed') ? '▶' : '◀';
+        }
+        if (window.soundManager) window.soundManager.playClick();
+      });
+    }
+
+    if (vitalsHeader && vitalsSidebar) {
+      vitalsHeader.addEventListener('click', () => {
+        const isMobile = window.innerWidth <= 768;
+        if (isMobile) {
+          vitalsSidebar.classList.toggle('mobile-expanded');
+          const hint = vitalsSidebar.querySelector('.vitals-mobile-hint');
+          if (hint) {
+            hint.textContent = vitalsSidebar.classList.contains('mobile-expanded') ? 'แตะเพื่อย่อ ▴' : 'แตะเพื่อขยาย ▾';
+          }
+          if (window.soundManager) window.soundManager.playClick();
+        } else if (vitalsSidebar.classList.contains('collapsed')) {
+          vitalsSidebar.classList.remove('collapsed');
+          if (btnToggleVitals) btnToggleVitals.textContent = '◀';
+          if (window.soundManager) window.soundManager.playClick();
+        }
+      });
+    }
+
+    if (vitalsSidebar) {
+      vitalsSidebar.addEventListener('click', (e) => {
+        if (vitalsSidebar.classList.contains('collapsed')) {
+          vitalsSidebar.classList.remove('collapsed');
+          if (btnToggleVitals) btnToggleVitals.textContent = '◀';
+          if (window.soundManager) window.soundManager.playClick();
+        }
+      });
+    }
+
     // Start & Restart
     document.getElementById('btn-start-game').addEventListener('click', () => {
       window.soundManager.ensureContext();
       this.closeModal('screen-welcome');
       const isTouchDevice = window.matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window);
       const hint = isTouchDevice
-        ? 'เริ่มแล้ว! ใช้จอยสติ๊กซ้ายเพื่อเดิน และปุ่ม 🖐️ เพื่อสำรวจ'
-        : 'เริ่มการเอาชีวิตรอด! กด W A S D เพื่อเดิน และกด E เพื่อสำรวจ';
+        ? 'เริ่มแล้ว! แตะที่ร้านค้าหรือชาวบ้านเพื่อเดินไปคุย หรือลากบนพื้นเพื่อใช้จอยสติ๊ก'
+        : 'เริ่มแล้ว! คลิกที่ร้านค้า/สิ่งของเพื่อเดินไปหา หรือกดคลิกค้างเพื่อเดิน';
       this.showToast(hint, 'success');
+      setTimeout(() => {
+        this.openDailyBriefing(1);
+      }, 350);
     });
 
     document.getElementById('btn-restart-game').addEventListener('click', () => {
@@ -190,6 +396,76 @@ class Game {
         <p><em>"${d.educationalLesson}"</em></p>
       </div>
     `;
+  }
+
+  // --- Student Gamification Methods: Stars & Certificate ---
+  addStars(amount) {
+    this.stars += amount;
+    localStorage.setItem('outbreak_stars', this.stars);
+    const starEl = document.getElementById('val-stars');
+    if (starEl) starEl.textContent = this.stars;
+    const hudStars = document.getElementById('hud-stars');
+    if (hudStars) {
+      hudStars.classList.remove('pop-anim');
+      void hudStars.offsetWidth; // trigger reflow
+      hudStars.classList.add('pop-anim');
+    }
+  }
+
+  spawnFloatingEffect(x, y, text) {
+    const container = document.getElementById('floating-fx-container');
+    if (!container) return;
+
+    const el = document.createElement('div');
+    el.className = 'floating-particle';
+    el.textContent = text;
+    el.style.left = `${x || window.innerWidth / 2}px`;
+    el.style.top = `${y || window.innerHeight / 2}px`;
+    container.appendChild(el);
+
+    setTimeout(() => {
+      if (el.parentNode) el.parentNode.removeChild(el);
+    }, 1200);
+  }
+
+  openCertificate() {
+    const hp = Math.round(this.survival.hp);
+    const days = this.weather.day;
+    const infections = this.disease.totalInfectionsContracted;
+
+    let grade = 'A';
+    let title = 'อสม. น้อยดีเด่น';
+
+    if (days >= 7 && hp >= 80 && infections === 0) {
+      grade = 'S';
+      title = '🏆 อสม. ฮีโร่เหรียญทองระดับประเทศ';
+    } else if (days >= 5 && hp >= 60 && infections <= 1) {
+      grade = 'A+';
+      title = '🌟 ผู้พิทักษ์สุขภาพชุมชนดีเลิศ';
+    } else if (hp >= 50) {
+      grade = 'A';
+      title = '🥇 มือปราบยุงลายระดับทอง';
+    } else if (hp >= 30) {
+      grade = 'B';
+      title = '🥈 อสม. ผู้กล้าหาญระดับเงิน';
+    } else {
+      grade = 'C';
+      title = '🥉 อสม. ฝึกหัดประจำหมู่บ้าน';
+    }
+
+    const gradeEl = document.getElementById('cert-grade-val');
+    if (gradeEl) gradeEl.textContent = grade;
+    const starsEl = document.getElementById('cert-stars-val');
+    if (starsEl) starsEl.textContent = `⭐ ${this.stars}`;
+    const daysEl = document.getElementById('cert-days-val');
+    if (daysEl) daysEl.textContent = `${days} วัน`;
+    const titleEl = document.getElementById('cert-title-val');
+    if (titleEl) titleEl.textContent = title;
+
+    if (window.soundManager && typeof window.soundManager.playStarChime === 'function') {
+      window.soundManager.playStarChime();
+    }
+    this.openModal('modal-certificate');
   }
 
   openModal(modalId) {
@@ -321,6 +597,74 @@ class Game {
     }
 
     this.openModal('modal-investigation');
+  }
+
+  // --- Daily Public Health Briefing UI (7-Day Outbreak Curriculum) ---
+  openDailyBriefing(day) {
+    const cur = this.quests.getBriefingForDay(day);
+    if (!cur) return;
+
+    const modalBody = document.getElementById('briefing-modal-body');
+    const headerTitle = document.getElementById('briefing-header-title');
+    if (!modalBody || !headerTitle) return;
+
+    headerTitle.innerHTML = `🌅 ข่าวสารเตือนภัยสุขภาพ: วันที่ ${cur.day} / 7`;
+
+    let adviceHtml = '';
+    if (cur.keyAdvice) {
+      adviceHtml = cur.keyAdvice.map(a => `<div class="briefing-advice-item">${a}</div>`).join('');
+    }
+
+    let questsHtml = '';
+    if (cur.quests) {
+      questsHtml = cur.quests.map(q => `
+        <div class="briefing-quest-pill">
+          <div class="briefing-quest-title">
+            <span>${q.icon}</span>
+            <span>${q.title}</span>
+          </div>
+          <div class="briefing-quest-reward">รางวัล: +${q.rewardTokens} 🏅</div>
+        </div>
+      `).join('');
+    }
+
+    modalBody.innerHTML = `
+      <div class="briefing-hero">
+        <div class="briefing-hero-icon">${cur.icon}</div>
+        <div class="briefing-hero-title">
+          <h3>${cur.theme}</h3>
+          <p>${cur.subtitle}</p>
+        </div>
+      </div>
+
+      <div class="briefing-desc">
+        ${cur.briefing}
+      </div>
+
+      <div class="briefing-section-title">💡 คำแนะนำทางการแพทย์ & สิ่งที่ต้องระวัง:</div>
+      <div class="briefing-advice-box">
+        ${adviceHtml}
+      </div>
+
+      <div class="briefing-section-title">📋 ภารกิจ อสม. ประจำวันนี้:</div>
+      <div class="briefing-quests-box">
+        ${questsHtml}
+      </div>
+
+      <button id="btn-briefing-start" class="briefing-start-btn">
+        🚀 รับทราบและเริ่มปฏิบัติงาน (วันที่ ${cur.day})
+      </button>
+    `;
+
+    const btnStart = document.getElementById('btn-briefing-start');
+    if (btnStart) {
+      btnStart.addEventListener('click', () => {
+        this.closeModal('modal-briefing');
+        if (window.soundManager) window.soundManager.playChime(600);
+      });
+    }
+
+    this.openModal('modal-briefing');
   }
 
   // --- Food Cupboard Storage UI ---
@@ -470,8 +814,8 @@ class Game {
 
       if (canPerform) {
         card.addEventListener('click', () => {
-          this.executeAction(opt, ent);
           this.closeModal('modal-interaction');
+          this.executeAction(opt, ent);
         });
       } else {
         card.style.opacity = '0.5';
@@ -524,39 +868,75 @@ class Game {
         break;
 
       case 'cook_pork':
-        if (window.soundManager) window.soundManager.playSizzle();
-        this.showToast('ย่างเนื้อหมูจนสุก 100% ปลอดภัยจากเชื้อไข้หูดับ!', 'success');
-        this.quests.progress('cook_pork', 1, this.player, (msg, type) => this.showToast(msg, type));
+        this.miniGames.playCookingTiming('เนื้อหมู', (isCooked) => {
+          if (window.soundManager) window.soundManager.playSizzle();
+          if (isCooked) {
+            this.showToast('ย่างเนื้อหมูจนสุก 100% ปลอดภัยจากเชื้อไข้หูดับ!', 'success');
+            this.spawnFloatingEffect(window.innerWidth / 2, window.innerHeight / 2, '🥩 สุก 100% ปลอดภัย!');
+            this.quests.progress('cook_pork', 1, this.player, (msg, type) => {
+              this.showToast(msg, type);
+              this.addStars(50);
+            });
+          } else {
+            this.showToast('หมูยังกึ่งสุกกึ่งดิบ! เชื้อแบคทีเรียอาจยังไม่ตาย ระวังไข้หูดับ', 'warning');
+          }
+        });
         break;
 
       case 'boil_water':
-        if (window.soundManager) window.soundManager.playSizzle();
-        this.showToast('ต้มน้ำเดือดพล่าน ฆ่าเชื้อโรคสะอาด 100%!', 'success');
-        this.quests.progress('boil_water', 1, this.player, (msg, type) => this.showToast(msg, type));
+        this.miniGames.playCookingTiming('น้ำดื่ม', () => {
+          if (window.soundManager) window.soundManager.playSizzle();
+          this.showToast('ต้มน้ำเดือดพล่าน ฆ่าเชื้อโรคสะอาด 100%!', 'success');
+          this.spawnFloatingEffect(window.innerWidth / 2, window.innerHeight / 2, '💧 น้ำต้มสุกสะอาด!');
+          this.quests.progress('boil_water', 1, this.player, (msg, type) => {
+            this.showToast(msg, type);
+            this.addStars(50);
+          });
+        });
         break;
 
       case 'wash_hands':
-        this.survival.washHands();
-        if (window.soundManager) window.soundManager.playConsume(true);
-        this.showToast('ฟอกสบู่ล้างมือสะอาดแล้ว สุขอนามัยเต็ม 100%!', 'success');
-        this.quests.progress('wash_hands', 1, this.player, (msg, type) => this.showToast(msg, type));
+        this.miniGames.playHandWash(() => {
+          this.survival.washHands();
+          this.showToast('ฟอกสบู่ล้างมือสะอาดแล้ว สุขอนามัยเต็ม 100%!', 'success');
+          this.spawnFloatingEffect(window.innerWidth / 2, window.innerHeight / 2, '🧼 ล้างมือสะอาด!');
+          this.quests.progress('wash_hands', 1, this.player, (msg, type) => {
+            this.showToast(msg, type);
+            this.addStars(50);
+          });
+        });
         break;
 
       case 'apply_abate':
         ent.hasAbate = true;
-        this.showToast('ใส่ทรายอะเบทในโอ่งแล้ว ลูกน้ำยุงลายไม่สามารถเจริญเติบโตได้!', 'success');
-        this.quests.progress('apply_abate', 1, this.player, (msg, type) => this.showToast(msg, type));
+        this.addStars(25);
+        if (window.soundManager) window.soundManager.playStarChime();
+        this.showToast('ใส่ทรายอะเบทในโอ่งแล้ว ลูกน้ำยุงลายไม่สามารถเจริญเติบโตได้! (+25 ⭐)', 'success');
+        this.spawnFloatingEffect(window.innerWidth / 2, window.innerHeight / 2, '+25 ⭐ ทรายอะเบท');
+        this.quests.progress('apply_abate', 1, this.player, (msg, type) => {
+          this.showToast(msg, type);
+          this.addStars(50);
+        });
         break;
 
       case 'cover_jar':
         ent.hasCover = true;
-        this.showToast('ปิดฝาโอ่งน้ำสนิท ยุงลายไม่สามารถเข้าไปวางไข่ได้!', 'success');
+        this.addStars(20);
+        if (window.soundManager) window.soundManager.playStarChime();
+        this.showToast('ปิดฝาโอ่งน้ำสนิท ยุงลายไม่สามารถเข้าไปวางไข่ได้! (+20 ⭐)', 'success');
+        this.spawnFloatingEffect(window.innerWidth / 2, window.innerHeight / 2, '+20 ⭐ ปิดฝาโอ่ง');
         break;
 
       case 'flip_shells':
-        ent.cleared = true;
-        this.showToast('คว่ำกะลาและทำลายแหล่งน้ำขังแล้ว ลดประชากรยุงลายในละแวกบ้าน!', 'success');
-        this.quests.progress('flip_shells', 1, this.player, (msg, type) => this.showToast(msg, type));
+        this.miniGames.playMosquitoSwat(() => {
+          ent.cleared = true;
+          this.showToast('คว่ำกะลาและทำลายแหล่งน้ำขังแล้ว ลดประชากรยุงลายในละแวกบ้าน!', 'success');
+          this.spawnFloatingEffect(window.innerWidth / 2, window.innerHeight / 2, '🦟 ปราบยุงลายสำเร็จ!');
+          this.quests.progress('flip_shells', 1, this.player, (msg, type) => {
+            this.showToast(msg, type);
+            this.addStars(50);
+          });
+        });
         break;
 
       case 'clinic_heal':
@@ -661,7 +1041,15 @@ class Game {
     const energy = Math.max(0, Math.round(this.survival.energy));
 
     document.getElementById('val-hp').textContent = `${hp}/100`;
-    document.getElementById('bar-hp').style.width = `${hp}%`;
+    const barHp = document.getElementById('bar-hp');
+    if (barHp) {
+      barHp.style.width = `${hp}%`;
+      if (hp <= 30) {
+        barHp.classList.add('critical');
+      } else {
+        barHp.classList.remove('critical');
+      }
+    }
 
     document.getElementById('val-hunger').textContent = `${hunger}%`;
     document.getElementById('bar-hunger').style.width = `${hunger}%`;
@@ -671,6 +1059,49 @@ class Game {
 
     document.getElementById('val-energy').textContent = `${energy}%`;
     document.getElementById('bar-energy').style.width = `${energy}%`;
+
+    // Quick Vitals Chips (Header / Mobile Island)
+    const qHp = document.getElementById('quick-hp');
+    if (qHp) qHp.textContent = `❤️ ${hp}`;
+    const qHunger = document.getElementById('quick-hunger');
+    if (qHunger) qHunger.textContent = `🍗 ${hunger}%`;
+    const qThirst = document.getElementById('quick-thirst');
+    if (qThirst) qThirst.textContent = `💧 ${thirst}%`;
+    const qEnergy = document.getElementById('quick-energy');
+    if (qEnergy) qEnergy.textContent = `⚡ ${energy}%`;
+
+    // Dynamic Health Status Banner & Glowing Avatar Pulse Ring
+    const vitalsStatus = document.getElementById('vitals-health-status');
+    const vitalsStatusText = document.getElementById('vitals-status-text');
+    const vitalsPulseRing = document.getElementById('vitals-pulse-ring');
+    const activeInfections = this.disease.activeInfections;
+
+    if (vitalsStatus && vitalsStatusText) {
+      const activeSick = activeInfections.find(inf => inf.stage !== 'incubating');
+      const activeIncubating = activeInfections.find(inf => inf.stage === 'incubating');
+
+      if (activeSick) {
+        vitalsStatus.className = 'vitals-health-status danger';
+        vitalsStatusText.textContent = `⚠️ ติดเชื้อ: ${activeSick.name}`;
+        if (vitalsPulseRing) vitalsPulseRing.className = 'vitals-pulse-ring danger';
+      } else if (activeIncubating) {
+        vitalsStatus.className = 'vitals-health-status warning';
+        vitalsStatusText.textContent = `⚠️ ฟักตัว: ${activeIncubating.name}`;
+        if (vitalsPulseRing) vitalsPulseRing.className = 'vitals-pulse-ring';
+      } else if (hp < 30 || hunger < 20 || thirst < 20) {
+        vitalsStatus.className = 'vitals-health-status danger';
+        vitalsStatusText.textContent = hp < 30 ? 'ร่างกายวิกฤต!' : 'หิว/ขาดน้ำรุนแรง!';
+        if (vitalsPulseRing) vitalsPulseRing.className = 'vitals-pulse-ring danger';
+      } else if (hunger < 45 || thirst < 45 || energy < 30) {
+        vitalsStatus.className = 'vitals-health-status warning';
+        vitalsStatusText.textContent = thirst < 45 ? 'กระหายน้ำ' : 'เริ่มอ่อนล้า';
+        if (vitalsPulseRing) vitalsPulseRing.className = 'vitals-pulse-ring';
+      } else {
+        vitalsStatus.className = 'vitals-health-status';
+        vitalsStatusText.textContent = 'สุขภาพสมบูรณ์';
+        if (vitalsPulseRing) vitalsPulseRing.className = 'vitals-pulse-ring';
+      }
+    }
 
     // Equipment Badges
     const badgeBoots = document.getElementById('badge-boots');
@@ -856,11 +1287,12 @@ class Game {
           const deltaGameHours = dt / this.weather.secondsPerGameHour;
           this.player.updateFoodFreshness(deltaGameHours, this.weather, (msg, type) => this.showToast(msg, type));
 
-          // Check day change for daily quests
+          // Check day change for daily quests & 7-day curriculum briefing
           if (this.weather.day !== this.lastTrackedDay) {
             this.lastTrackedDay = this.weather.day;
             this.quests.generateDailyQuests(this.weather.day);
-            this.showToast(`📋 เริ่มต้นวันใหม่! มีภารกิจ อสม. ประจำวันที่ ${this.weather.day} เข้ามาแล้ว`, 'normal');
+            this.openDailyBriefing(this.weather.day);
+            this.showToast(`📋 เริ่มต้นวันใหม่! มีภารกิจและคำเตือนวันที่ ${this.weather.day} เข้ามาแล้ว`, 'normal');
           }
 
           // 2. Check Interactive Entity Proximity
@@ -870,7 +1302,12 @@ class Game {
 
           if (this.currentNearbyEntity) {
             promptEl.classList.remove('hidden');
-            promptText.textContent = `กด E หรือแตะ เพื่อ [${this.currentNearbyEntity.name}]`;
+            const hasMiniGame = this.currentNearbyEntity.options && this.currentNearbyEntity.options.some(opt => ['flip_shells', 'wash_hands', 'cook_pork', 'boil_water'].includes(opt.action));
+            if (hasMiniGame) {
+              promptText.innerHTML = `กด E หรือแตะ เพื่อ [${this.currentNearbyEntity.name}] <span style="color: #fde68a; font-weight: 800; text-shadow: 0 0 8px rgba(245, 158, 11, 0.8);">🎮 มินิเกม</span>`;
+            } else {
+              promptText.textContent = `กด E หรือแตะ เพื่อ [${this.currentNearbyEntity.name}]`;
+            }
           } else {
             promptEl.classList.add('hidden');
           }
